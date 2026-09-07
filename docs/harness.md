@@ -42,7 +42,7 @@ PLAXIS 2D 2023.2.1.1079, adapter 0.1.0**
 |---|---|---|
 | MicroStation 2026.1 build 26.00.01.65 | Bentley MicroStation MCP, Copilot package 26.01.178 | MCP initialized with 25 tools. `microstation_get_file_info` returned one active 3D model from a disposable test DGN. |
 | STAAD.Pro 2026 version 26.0.0.340 | OpenSTAAD MCP | Connected as `staadPro1`. A read returned 4 nodes and 3 beams from the bundled steel portal-frame sample. |
-| PLAXIS 2D 2023.2.1.1079 | `plaxis-mcp` 0.3.5, `legacy-38-2023` profile | MCP initialized with 34 Input tools. `connect`, `connection_status`, `project_info`, `list_materials`, and `model_state` returned from a disposable test project. |
+| PLAXIS 2D 2023.2.1.1079 | Locally patched `plaxis-mcp` 0.3.5, uncertified `legacy-38-2023` profile | MCP initialized with 34 Input tools. `connect`, `connection_status`, `project_info`, `list_materials`, and `model_state` returned from a disposable test project. This is not stock upstream support. |
 | GitHub Copilot app 1.0.83-5 | `%USERPROFILE%\.copilot\mcp-config.json` | The three local servers worked in one session. |
 
 **verified 2026-09-07, MicroStation 26.00.01.65:** the live
@@ -165,10 +165,21 @@ stops the run.
 | Project | **source 2026-09-07, `yixuanzhong/PLAXIS-MCP` v0.3.5:** MIT-licensed independent project, not supported by Bentley or Seequent. |
 | Transport | **source 2026-09-07, v0.3.5:** Windows-local stdio with a role-pinned worker. |
 | Host runtime | **source 2026-09-07, v0.3.5:** CPython 3.13; do not install `plxscripting` in the host environment. |
-| Profiles | **verified 2026-09-07, PLAXIS 2D 2023.2.1.1079 and v0.3.5:** `setup` produced role profiles under `%LOCALAPPDATA%\Caros\PLAXIS-MCP\profiles`; the Input credential remained in Windows Credential Manager. |
-| Input tools | **verified 2026-09-07, PLAXIS 2D 2023.2.1.1079 and v0.3.5:** 34 tools exposed. |
+| Profiles | **verified 2026-09-07, PLAXIS 2D 2023.2.1.1079 and locally patched v0.3.5:** `setup` produced role profiles under `%LOCALAPPDATA%\Caros\PLAXIS-MCP\profiles`; the Input credential remained in Windows Credential Manager. The added `legacy-38-2023` profile is absent upstream. |
+| Input tools | **verified 2026-09-07, PLAXIS 2D 2023.2.1.1079 and locally patched v0.3.5:** 34 tools exposed. |
 | Output tools | **source 2026-09-07, v0.3.5:** 11 tools documented. **unverified on this machine; closure:** start PLAXIS Output on 10001 and record `connection_status`, `project_info`, and `list_result_types`. |
 | Endpoint overrides | **source 2026-09-07, v0.3.5:** `serve` fails closed when a `PLAXIS_*` endpoint environment variable is present. |
+
+**source 2026-09-07, stock plaxis-mcp 0.3.5:** runtime support is exact,
+not a loose product-version range. `current-312` maps PLAXIS 2024.2 and newer
+to bundled Python 3.12.3; `legacy-38` requires Python 3.8.10; `legacy-37`
+requires Python 3.7.4. An unrecognized patch level fails closed.
+
+**convention, enforced by preflight stage 6 and stage 8:** the adapter accepts
+the locally verified 2023.2 build or a recorded 2024.2+ generation. A newer
+generation is labelled unverified and must then pass stock runtime attestation
+and every declared read probe. This permits current versions to be tested
+without falsely promoting them to verified.
 
 **source 2026-09-07, v0.3.5:** Input-only tools are `list_objects`,
 `model_state`, `set_property`, `call_method`, `new_project`, `open_project`,
@@ -278,7 +289,7 @@ not defaults.
 | Exact observed symptom | Cause | Adapter detection and required action | Evidence |
 |---|---|---|---|
 | `No STAAD.Pro instances found` | STAAD.Pro was running without a model registered for OpenSTAAD. | **preflight stage 4, `MODEL_NOT_OPEN`:** open the intended `.std` file, then rerun. | **verified 2026-09-07, STAAD.Pro 26.0.0.340, OpenSTAAD MCP** |
-| `AUTHENTICATION_FAILED` and `The PLAXIS scripting server rejected the stored password for this endpoint.` | PLAXIS 2D and 3D both claimed port 10000; the client reached the wrong secured endpoint. | **preflight stage 5, `PORT_COLLISION` or `PORT_IDENTITY_MISMATCH`:** apply the port map, regenerate profiles, then reconnect. Do not rotate the credential first. | **verified 2026-09-07, PLAXIS 2D 2023.2.1.1079, PLAXIS 3D 2025.1.3.5, plaxis-mcp 0.3.5** |
+| `AUTHENTICATION_FAILED` and `The PLAXIS scripting server rejected the stored password for this endpoint.` | PLAXIS 2D and 3D both claimed port 10000; the client reached the wrong secured endpoint. | **preflight stage 5, `PORT_COLLISION` or `PORT_IDENTITY_MISMATCH`:** apply the port map, regenerate profiles, then reconnect. Do not rotate the credential first. | **verified 2026-09-07, PLAXIS 2D 2023.2.1.1079, PLAXIS 3D 2025.1.3.5, locally patched plaxis-mcp 0.3.5** |
 | `machine.json belongs to host '<recorded>', not '<current>'` | A copied machine record or a hardcoded profile path does not belong to the active host or account. Live discovery also handled a dotted account name without string concatenation. | **preflight stage 1, `MACHINE_FOREIGN`, plus `core.resolve`:** regenerate machine state under the active account and emit absolute paths from it. | **verified 2026-09-07, Windows 11 build 26200, adapter 0.1.0; account value redacted for publication** |
 | `VERSION_RECORD_INCOMPLETE` | A required record field is blank or contains `TODO`. | **preflight stage 2:** complete the field; do not infer it. | **verified 2026-09-07, adapter 0.1.0 test suite** |
 | `SERVER_VERSION_MISMATCH_WARNING` | OpenSTAAD reported a compatibility warning. | **preflight stage 6:** stop and align versions. | **source 2026-09-07, OpenSTAAD MCP v1.2.0; unverified live mismatch path, closure: run the negative mismatch test on a disposable installation pair** |
@@ -326,6 +337,13 @@ touched, files created, manifests, unresolved warnings, and engineer reviewer.
   sandbox and further hardening remains planned.
 - **source 2026-09-07, plaxis-mcp v0.3.5:** PLAXIS-MCP is independent and has
   no Bentley or Seequent support.
+- **unverified; closure:** stock `plaxis-mcp` 0.3.5 was not proven against the
+  operator's PLAXIS 2023.2 Python 3.8.17 bundle. The live proof used a local
+  uncertified patch. Reproduce with a stock certified profile before claiming
+  upstream support.
+- **unverified; closure:** no PLAXIS 2024.2+ build has completed this harness.
+  Run stock setup, confirm exact `current-312` attestation, and pass all Input
+  and Output read probes on the target build.
 - **unverified; closure:** agent-driven and multi-instance licence entitlement
   is unresolved. Obtain written guidance from Bentley commercial.
 - **convention, operator discipline:** no component validates engineering

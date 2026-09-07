@@ -28,6 +28,7 @@ from core.preflight.checks import (
     EXIT_VERSION_RECORD,
     _check_models,
     _check_allowed_directory,
+    _application_version_status,
     _machine_current,
     _version_matches,
     _version_record_complete,
@@ -116,6 +117,31 @@ class ModelTests(unittest.TestCase):
 class VersionTests(unittest.TestCase):
     def test_plaxis_year_version_alias(self) -> None:
         self.assertTrue(_version_matches("23.02.01.1079", "2023.2.1.1079"))
+
+    def test_verified_plaxis_build_is_accepted(self) -> None:
+        requires = load_module("plaxis2d-input")["requires"]
+        supported, verified, _ = _application_version_status(
+            requires, "23.02.01.1079"
+        )
+        self.assertTrue(supported)
+        self.assertTrue(verified)
+
+    def test_upstream_current_plaxis_generation_reaches_live_probes(self) -> None:
+        requires = load_module("plaxis2d-input")["requires"]
+        supported, verified, reason = _application_version_status(
+            requires, "25.01.03.005"
+        )
+        self.assertTrue(supported)
+        self.assertFalse(verified)
+        self.assertIn("not live-verified", reason)
+
+    def test_unsupported_intermediate_plaxis_build_is_rejected(self) -> None:
+        requires = load_module("plaxis2d-input")["requires"]
+        supported, verified, _ = _application_version_status(
+            requires, "2024.1.0"
+        )
+        self.assertFalse(supported)
+        self.assertFalse(verified)
 
     def test_todo_is_incomplete(self) -> None:
         record = {

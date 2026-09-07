@@ -29,7 +29,7 @@ No gateway, tunnel, remote transport, WSL, or Docker path is included.
 |---|---|
 | MicroStation | 2026.1 build 26.00.01.65, live MCP read previously passed |
 | STAAD.Pro | 2026 version 26.0.0.340, live OpenSTAAD read previously passed |
-| PLAXIS 2D | 2023.2.1.1079 with plaxis-mcp 0.3.5, live Input reads previously passed |
+| PLAXIS 2D | 2023.2.1.1079 with a locally patched, upstream-uncertified `plaxis-mcp` 0.3.5 profile; live Input reads passed |
 | Port map | 2D Input 10000 and 3D Input 10002 |
 | Resolver | Passed on the operator machine; dotted username, known folders, non-hardcoded bundle path, registry versions, Node.js, uv, Python 3.13, long paths, and sync root recorded |
 | Emitters | Passed dry-run and write for both dialects to session artifacts; pins and generated metadata present; no secret values |
@@ -51,6 +51,9 @@ No gateway, tunnel, remote transport, WSL, or Docker path is included.
 - VS Code support for a server-side tool allowlist.
 - Second clean-machine resolver behavior.
 - PLAXIS 2D Output live connection on this machine.
+- Stock `plaxis-mcp` support for the operator's PLAXIS 2023.2 Python 3.8.17
+  bundle. The live proof used a local patch absent upstream.
+- Live verification of a PLAXIS 2024.2+ `current-312` installation.
 - A production signed `plaxis-mcp.exe` path on this machine.
 
 ## TODOs and closing evidence

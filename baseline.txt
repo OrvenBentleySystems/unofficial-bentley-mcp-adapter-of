@@ -385,3 +385,14 @@ PUBLIC RELEASE CLEAN-CLONE REPLAY
   PASS deploy.bat --check through the installed wheel
   PASS preflight 8/8
   PASS no existing clone file changed
+
+PLAXIS COMPATIBILITY CORRECTION
+  DISCLOSED the operator-machine 2023.2 proof used a local, uncertified
+  legacy-38-2023 runtime-profile patch for bundled Python 3.8.17.
+  CONFIRMED stock plaxis-mcp 0.3.5 does not contain that profile.
+  CONFIRMED stock current-312 maps the 2024.2+ generation to exact bundled
+  Python 3.12.3.
+  CHANGED stage 6 to accept either the locally verified 2023.2 build or a
+  recorded 2024.2+ generation.
+  NEWER generations remain unverified and must pass upstream runtime
+  attestation plus stage 8 live reads.

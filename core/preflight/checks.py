@@ -326,22 +326,68 @@ def _version_matches(actual: Any, expected: Any) -> bool:
     )
 
 
+def _year_version(value: Any) -> tuple[int, ...]:
+    version = _numeric_version(value)
+    if version and version[0] < 100:
+        return (version[0] + 2000, *version[1:])
+    return version
+
+
+def _version_at_least(actual: Any, minimum: Any) -> bool:
+    left = _year_version(actual)
+    right = _year_version(minimum)
+    if not left or not right:
+        return False
+    width = max(len(left), len(right))
+    return left + (0,) * (width - len(left)) >= right + (0,) * (width - len(right))
+
+
+def _application_version_status(
+    requires: dict[str, Any],
+    version: Any,
+) -> tuple[bool, bool, str]:
+    policy = requires.get("version_policy")
+    if not isinstance(policy, dict):
+        expected = requires.get("verified_version")
+        matched = _version_matches(version, expected)
+        return matched, matched, f"exact verified version {expected}"
+    verified_versions = list(policy.get("verified_versions") or [])
+    for verified in verified_versions:
+        if _version_matches(version, verified):
+            return True, True, f"verified version {verified}"
+    minimum = policy.get("upstream_generation_from")
+    if minimum and _version_at_least(version, minimum):
+        return (
+            True,
+            False,
+            f"upstream generation {minimum}+; build is not live-verified",
+        )
+    return (
+        False,
+        False,
+        "outside verified versions and declared upstream generation",
+    )
+
+
 def _check_versions(
     modules: list[dict[str, Any]],
     profile: dict[str, Any],
     processes: list[dict[str, Any]],
-) -> None:
+) -> list[str]:
     record = profile["version_record"]
+    warnings: list[str] = []
     for module in modules:
         requires = module["requires"]
         record_key = requires.get("version_record_key")
-        expected = requires.get("verified_version")
         recorded = record.get(record_key)
-        if not _version_matches(recorded, expected):
+        supported, verified, reason = _application_version_status(
+            requires, recorded
+        )
+        if not supported:
             raise CheckFailure(
                 EXIT_VERSION,
                 "APPLICATION_VERSION_MISMATCH",
-                f"{module['display']} record '{recorded}' does not match verified '{expected}'",
+                f"{module['display']} record '{recorded}' is {reason}",
             )
         process_versions = [
             process.get("version")
@@ -349,12 +395,18 @@ def _check_versions(
             if process.get("version")
         ]
         if process_versions and not any(
-            _version_matches(version, expected) for version in process_versions
+            _version_matches(version, recorded) for version in process_versions
         ):
             raise CheckFailure(
                 EXIT_VERSION,
                 "RUNNING_VERSION_MISMATCH",
-                f"{module['display']} running version(s) {process_versions} do not match {expected}",
+                f"{module['display']} running version(s) {process_versions} "
+                f"do not match version record {recorded}",
+            )
+        if not verified:
+            warnings.append(
+                f"{module['display']} {recorded}: {reason}. "
+                "Upstream runtime attestation and stage 8 reads must pass."
             )
         server_key = requires.get("server_version_record_key")
         if server_key and not _version_matches(
@@ -365,6 +417,7 @@ def _check_versions(
                 "SERVER_VERSION_MISMATCH",
                 f"{module['display']} server pin does not match version record",
             )
+    return warnings
 
 
 def _check_runtime_version_warning(
@@ -609,7 +662,9 @@ def run_preflight(
         _pass(4, "models or projects open")
         _check_ports(modules, profile)
         _pass(5, "ports listening with expected process identity")
-        _check_versions(modules, profile, processes)
+        version_warnings = _check_versions(modules, profile, processes)
+        for warning in version_warnings:
+            print(f"WARN 6: {warning}")
         if not skip_tool_calls:
             _check_runtime_version_warning(modules, machine, profile)
         if skip_tool_calls:

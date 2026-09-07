@@ -51,6 +51,9 @@ After push, enable:
 
 - [x] Verified client status is separated from shape-only status.
 - [x] Local llama.cpp chain is labelled unverified at each capability claim.
+- [x] PLAXIS 2023.2 local-patch verification is distinguished from stock
+  upstream support; 2024.2+ remains unverified until runtime attestation and
+  live probes pass.
 - [x] README disclaimer states unofficial personal project, no vendor support,
   proprietary MicroStation early access, unresolved entitlement, and required
   engineering review.
@@ -72,7 +75,7 @@ Recommended repository topics:
 
 - [x] Cloud preflight: 8/8.
 - [x] Baseline tests: 14/14.
-- [x] Full suite: 41 tests, with one platform-dependent symlink test skipped
+- [x] Full suite: 44 tests, with one platform-dependent symlink test skipped
   when Windows did not permit symlink creation.
 - [x] Copilot CLI and VS Code reference configs byte-identical.
 - [x] All 24 original wheel entries intact; 29 additive entries.
@@ -86,4 +89,3 @@ Clear to publish as an unverified local-model release. Do not claim that a
 llama.cpp engineering chain works until `llama-server` is installed on the
 operator machine with `--jinja`, stage 9 passes, and a Read-tier MicroStation
 and STAAD.Pro chain completes without a cloud call.
-

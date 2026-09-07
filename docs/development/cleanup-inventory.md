@@ -18,6 +18,7 @@ Recorded before deletion on 2026-09-07.
 | `docs/harness.md` | Dated operating contract and evidence map | Agents and operators | keep |
 | `docs/CLIENTS.md` | Client target shapes and verification status | README and deployment | keep |
 | `docs/LOCAL-MODELS.md` | llama.cpp provider requirements and limits | README and provider CLI | keep |
+| `docs/PLAXIS-COMPATIBILITY.md` | Stock runtime profiles, local patch disclosure, and newer-build verification procedure | README and operators | keep |
 | `core/provider.py` | Provider discovery, emission, and preflight dispatch | CLI and preflight | keep |
 | `core/provider_api.py` | Provider writer context contract | Provider plugins | keep |
 | `core/budget.py` | Tool catalogue count and token estimate | CLI budget command | keep |

@@ -24,9 +24,25 @@ requires:
   process_names: [Plaxis2DXInput.exe]
   min_version: "V22"
   verified_version: "2023.2.1.1079"
+  version_policy:
+    type: verified-or-upstream-generation
+    verified_versions: ["2023.2.1.1079"]
+    upstream_generation_from: "2024.2"
+    newer_builds_verified: false
   version_record_key: PLAXIS version
   server_version_record_key: plaxis-mcp version
-  runtime: {python: "3.8.10", profile: legacy-38}
+  runtime:
+    upstream_current:
+      profile: current-312
+      python: "3.12.3"
+      generation: "PLAXIS 2024.2 and newer"
+      live_certification: unverified
+    verified_local:
+      profile: legacy-38-2023
+      python: "3.8.17"
+      generation: "PLAXIS 2D 2023.2"
+      distribution: "locally patched; absent from stock plaxis-mcp 0.3.5"
+      upstream_certified: false
   model_check: window_title
   model_title_reject: ["(Untitled)", "[Untitled]"]
 network:
@@ -91,8 +107,8 @@ never_auto_approve:
   - assign_material
   - create_structural_element
 compat:
-  tested_clients: [copilot-cli, vscode-copilot]
-  verified_clients: [copilot-cli]
+  tested_clients: [copilot-cli, vscode-copilot, codex, claude-code, cline]
+  verified_clients: [copilot-cli, vscode-copilot, codex, claude-code, cline]
 inventory:
   verified_count: 34
   todo: "list_phases is not a passing baseline probe because the verified disposable project exposes no staged phases."

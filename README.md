@@ -21,9 +21,9 @@ Verified on 2026-09-07:
 |---|---|
 | MicroStation | 2026.1 build 26.00.01.65; 25 tools; file-info read passed |
 | STAAD.Pro | 2026 version 26.0.0.340; OpenSTAAD read passed |
-| PLAXIS 2D | 2023.2.1.1079; `plaxis-mcp` 0.3.5; Input read passed |
+| PLAXIS 2D | 2023.2.1.1079 Input read passed using a local, upstream-uncertified `legacy-38-2023` patch |
 | Client | GitHub Copilot app 1.0.83-5 |
-| Adapter | 0.1.0; eight preflight stages and 14 tests passed |
+| Adapter | 0.1.0; eight required preflight stages, 14 frozen baseline tests, and 30 additive tests passed |
 
 Not yet verified: a clean second machine, PLAXIS Output, stable provenance for
 the OpenSTAAD executable used during live validation, and a local llama.cpp
@@ -53,11 +53,17 @@ providers are separate plugins. The local-provider path targets
 - Node.js for the MicroStation stdio launcher
 - STAAD.Pro 2026 version 26.0.0.340
 - OpenSTAAD MCP 1.2.0, installed or cached before offline launch
-- PLAXIS 2D 2023.2.1.1079
-- `plaxis-mcp` 0.3.5; use its signed executable for production
+- A PLAXIS 2D build accepted by stock `plaxis-mcp` 0.3.5 runtime attestation.
+  Its `current-312` profile covers the 2024.2+ generation only when the bundled
+  Python is exactly 3.12.3.
+- `plaxis-mcp` 0.3.5; use its signed executable for production. The 2023.2
+  live proof used a local patch and is not reproducible with the stock package.
 - `uv` and `uvx` when using the declared evaluation launchers
 - Elevation for the MicroStation MCP MSI installation
 - A local writable working directory outside profile roots, shares, and synced folders
+
+See [docs/PLAXIS-COMPATIBILITY.md](docs/PLAXIS-COMPATIBILITY.md) for the
+stock runtime-profile matrix and the procedure for verifying a newer build.
 
 ## Install and first run
 
@@ -119,6 +125,10 @@ variable. See [docs/PORTS.md](docs/PORTS.md).
 - Windows only. No WSL, Docker, gateway, tunnel, or remote transport is shipped.
 - MicroStation MCP is early access; verification does not transfer to another build.
 - PLAXIS Output has not been verified on the operator machine.
+- No stock `plaxis-mcp` 0.3.5 proof exists for PLAXIS 2023.2 with bundled
+  Python 3.8.17. The recorded proof used an uncertified local patch.
+- PLAXIS 2024.2+ is allowed to reach upstream runtime attestation and live
+  reads, but no newer application build has been live-verified here.
 - No clean second-machine run has been completed.
 - The live OpenSTAAD executable did not have stable release provenance.
 - Read tiers reduce the Copilot tool surface. The generated VS Code file

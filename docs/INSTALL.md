@@ -21,11 +21,16 @@ llama.cpp, or model weights.
    treated as verified automatically.
 5. Install `uv` and `uvx` if OpenSTAAD is not deployed from its `.mcpb`
    bundle.
-6. Install a supported local PLAXIS 2D release. For the verified baseline this
-   is PLAXIS 2D 2023.2.1.1079.
+6. Install a PLAXIS 2D release whose bundled Python matches an exact upstream
+   `plaxis-mcp` runtime profile. Stock 0.3.5 declares `current-312` for PLAXIS
+   2024.2 and newer, but accepts only bundled Python 3.12.3. A later product
+   release with a different Python patch fails closed until certified.
 7. Install the signed `plaxis-mcp` 0.3.5 Windows package for production. The
    PyPI path is suitable for local evaluation but has no Authenticode or
    package manifest assurance.
+   The operator-machine PLAXIS 2023.2 proof used a local `legacy-38-2023`
+   patch for Python 3.8.17. That patch is absent from stock 0.3.5 and must not
+   be presented as upstream support.
 8. Install CPython 3.13 for this adapter and the `plaxis-mcp` host. Do not
    install `plxscripting` into that environment.
 9. Enable Windows long paths, or use a shallow dedicated working directory.

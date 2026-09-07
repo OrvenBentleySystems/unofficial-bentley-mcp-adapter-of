@@ -18,5 +18,9 @@
 - Recorded the verified baseline:
   - MicroStation 2026.1 build 26.00.01.65, 25 tools.
   - STAAD.Pro 2026 version 26.0.0.340.
-  - PLAXIS 2D 2023.2.1.1079 with `plaxis-mcp` 0.3.5.
+  - PLAXIS 2D 2023.2.1.1079 with a locally patched, upstream-uncertified
+    `plaxis-mcp` 0.3.5 runtime profile.
   - GitHub Copilot app 1.0.83-5.
+- Corrected PLAXIS compatibility: the 2023.2 proof used an uncertified local
+  runtime-profile patch, while stock 0.3.5 accepts exact upstream ABIs and
+  declares `current-312` for the 2024.2+ generation.
