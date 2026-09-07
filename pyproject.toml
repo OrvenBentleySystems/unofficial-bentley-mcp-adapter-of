@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bentley-mcp-adapter"
+version = "0.1.0"
+description = "Windows-local configuration and preflight adapter for Bentley MCP servers"
+requires-python = ">=3.13,<3.14"
+dependencies = ["PyYAML>=6.0,<7"]
+license = "MIT"
+
+[project.scripts]
+bentley-adapter = "core.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["core*"]
+
+[tool.setuptools]
+license-files = []
+
+[tool.setuptools.data-files]
+"share/bentley-mcp-adapter/modules/microstation" = ["modules/microstation/module.yaml"]
+"share/bentley-mcp-adapter/modules/staadpro" = ["modules/staadpro/module.yaml"]
+"share/bentley-mcp-adapter/modules/plaxis2d-input" = ["modules/plaxis2d-input/module.yaml"]
+"share/bentley-mcp-adapter/modules/plaxis2d-output" = ["modules/plaxis2d-output/module.yaml"]
+"share/bentley-mcp-adapter/targets/copilot-cli" = ["targets/copilot-cli/target.yaml", "targets/copilot-cli/writer.py"]
+"share/bentley-mcp-adapter/targets/vscode-copilot" = ["targets/vscode-copilot/target.yaml", "targets/vscode-copilot/writer.py"]
+"share/bentley-mcp-adapter/targets/codex" = ["targets/codex/target.yaml", "targets/codex/writer.py"]
+"share/bentley-mcp-adapter/targets/claude-code" = ["targets/claude-code/target.yaml", "targets/claude-code/writer.py"]
+"share/bentley-mcp-adapter/targets/claude-desktop" = ["targets/claude-desktop/target.yaml", "targets/claude-desktop/writer.py"]
+"share/bentley-mcp-adapter/targets/cline" = ["targets/cline/target.yaml", "targets/cline/writer.py"]
+"share/bentley-mcp-adapter/targets/kilocode" = ["targets/kilocode/target.yaml", "targets/kilocode/writer.py"]
+"share/bentley-mcp-adapter/targets/cursor" = ["targets/cursor/target.yaml", "targets/cursor/writer.py"]
+"share/bentley-mcp-adapter/targets/opencode" = ["targets/opencode/target.yaml", "targets/opencode/writer.py"]
+"share/bentley-mcp-adapter/targets/continue" = ["targets/continue/target.yaml", "targets/continue/writer.py"]
+"share/bentley-mcp-adapter/providers/llamacpp" = ["providers/llamacpp/provider.yaml", "providers/llamacpp/writer.py"]
+"share/bentley-mcp-adapter/docs" = ["docs/harness.md", "docs/skill.md"]

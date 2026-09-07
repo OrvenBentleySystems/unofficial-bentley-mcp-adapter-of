@@ -1,0 +1,17 @@
+id: codex
+display: Codex CLI, IDE, and ChatGPT desktop
+format: toml
+root_key: mcp_servers
+requires_type: false
+supports_inputs: false
+supports_tool_allowlist: true
+verified: true
+verification_status: verified
+auto_eligible: true
+detect_commands: [codex]
+config_paths:
+  user: "%USERPROFILE%\\.codex\\config.toml"
+  project: "${profile.workspace_root}\\.codex\\config.toml"
+restart_note: "Restart the Codex client after changing MCP configuration."
+instruction_paths:
+  - "${profile.workspace_root}\\AGENTS.md"

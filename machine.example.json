@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "generated_at": "YYYY-MM-DDTHH:MM:SS+00:00",
+  "host": {
+    "computer_name": "<WINDOWS-COMPUTER-NAME>",
+    "account_name": "<WINDOWS-ACCOUNT-NAME>",
+    "platform": "Windows-11-<BUILD>",
+    "windows_release": "11",
+    "windows_version": "<WINDOWS-VERSION>",
+    "python": "3.13.x",
+    "python_executable": "<ABSOLUTE-PYTHON-3.13-PATH>",
+    "is_admin": false,
+    "long_paths_enabled": true
+  },
+  "known_folders": {
+    "user_profile": "<WINDOWS-USER-PROFILE>",
+    "local_app_data": "<WINDOWS-LOCAL-APP-DATA>"
+  },
+  "working_directory": {
+    "path": "<LOCAL-MCP-WORKING-DIRECTORY>",
+    "inside_synced_folder": false,
+    "sync_roots": []
+  },
+  "executables": {
+    "node": "<ABSOLUTE-NODE-PATH-OR-NULL>",
+    "uv": "<ABSOLUTE-UV-PATH-OR-NULL>",
+    "uvx": "<ABSOLUTE-UVX-PATH-OR-NULL>",
+    "python_313": "<ABSOLUTE-PYTHON-3.13-PATH-OR-NULL>"
+  },
+  "installations": {
+    "microstation": [
+      {
+        "display_name": "MicroStation <VERSION>",
+        "version": "<VERSION>",
+        "install_location": "<INSTALL-DIRECTORY-OR-NULL>",
+        "registry_source": "<REGISTRY-VIEW>",
+        "registry_key": "<PRODUCT-KEY>"
+      }
+    ],
+    "microstation_js_apps": [],
+    "staadpro": [],
+    "plaxis2d": [],
+    "plaxis3d": []
+  },
+  "microstation": {
+    "mcp_bundle": "<ABSOLUTE-BUNDLE.MCP.JS-PATH-OR-NULL>",
+    "tool_inventory": "<ABSOLUTE-MICROSTATION-TOOLS.JSON-PATH>",
+    "bridge_log": "<ABSOLUTE-MICROSTATION-BRIDGE-LOG-PATH>"
+  },
+  "plaxis": {
+    "profiles": {
+      "directory": "<ABSOLUTE-PLAXIS-PROFILE-DIRECTORY>",
+      "input": "<ABSOLUTE-INPUT-PROFILE-PATH-OR-NULL>",
+      "output": "<ABSOLUTE-OUTPUT-PROFILE-PATH-OR-NULL>"
+    }
+  }
+}

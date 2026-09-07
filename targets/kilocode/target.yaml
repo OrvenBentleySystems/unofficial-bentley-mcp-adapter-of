@@ -1,0 +1,18 @@
+id: kilocode
+display: Kilo Code
+format: jsonc
+root_key: mcp
+requires_type: false
+supports_inputs: false
+supports_tool_allowlist: false
+verified: false
+verification_status: shape-only
+auto_eligible: false
+detect_commands: [kilo]
+source: "https://kilo.ai/docs/automate/mcp/using-in-kilo-code"
+config_paths:
+  global: "%USERPROFILE%\\.config\\kilo\\kilo.jsonc"
+  project: "${profile.workspace_root}\\.kilo\\kilo.jsonc"
+restart_note: "Kilo Code uses the current mcp object format with local command arrays."
+instruction_paths:
+  - "${profile.workspace_root}\\.kilocode\\rules\\bentley-mcp.md"

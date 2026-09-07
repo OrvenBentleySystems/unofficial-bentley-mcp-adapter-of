@@ -1,0 +1,18 @@
+id: cline
+display: Cline extension and CLI
+format: json
+root_key: mcpServers
+requires_type: true
+type_value: stdio
+supports_inputs: false
+supports_tool_allowlist: false
+verified: true
+verification_status: verified
+auto_eligible: true
+detect_commands: [cline]
+config_paths:
+  extension: "%APPDATA%\\Code\\User\\globalStorage\\saoudrizwan.claude-dev\\settings\\cline_mcp_settings.json"
+  cli: "%USERPROFILE%\\.cline\\mcp.json"
+restart_note: "Cline autoApprove remains empty. Review every tool call."
+instruction_paths:
+  - "${profile.workspace_root}\\.clinerules\\bentley-mcp.md"

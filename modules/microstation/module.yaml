@@ -1,0 +1,65 @@
+id: microstation
+display: MicroStation
+version: 1.0.0
+server:
+  package: Bentley MicroStation MCP
+  pinned: "26.01.178"
+  launch:
+    command: "${machine.executables.node}"
+    args: ["${machine.microstation.mcp_bundle}"]
+  transport: stdio
+requires:
+  application: MicroStation
+  application_id: microstation
+  process_names: [microstation.exe]
+  min_version: "26.00.01.65"
+  verified_version: "26.00.01.65"
+  version_record_key: MicroStation build
+  model_check: microstation_com
+network:
+  uses_port: false
+preflight:
+  - tool: microstation_get_file_info
+    expect_non_empty: [models]
+tiers:
+  read:
+    - microstation_find_documentation
+    - microstation_get_selection
+    - microstation_execute_query
+    - microstation_get_file_info
+    - microstation_get_schema
+    - microstation_capture_viewport
+    - microstation_get_workflow_prompt
+    - microstation_lookup_python_snippet
+    - microstation_lookup_python_api
+    - microstation_lookup_python_pitfalls
+    - microstation_lookup_python_recipe
+    - microstation_lookup_python_tests
+    - microstation_prepare_python
+    - microstation_verify_python_code
+  guided:
+    - +microstation_set_selection
+    - microstation_manage_display_set
+    - microstation_view_state_apply
+    - microstation_view_undo
+    - microstation_view_redo
+  full: ["*"]
+never_auto_approve:
+  - microstation_manage_project
+  - microstation_manage_file_index
+  - microstation_set_selection
+  - microstation_run_keyin
+  - microstation_manage_display_set
+  - microstation_view_state_apply
+  - microstation_view_undo
+  - microstation_view_redo
+  - microstation_run_python
+compat:
+  tested_clients: [copilot-cli, vscode-copilot]
+  verified_clients: [copilot-cli]
+inventory:
+  verified_count: 25
+  cached_names_count: 23
+  source: "%LOCALAPPDATA%\\Bentley\\McpBridge\\Config\\microstation-tools.json"
+  todo: "Resolve the two client-local tools from a live tools/list call on each target build."
+

@@ -1,0 +1,16 @@
+id: vscode-copilot
+format: json
+root_key: servers
+requires_type: true
+type_value: stdio
+supports_inputs: true
+supports_tool_allowlist: false
+legacy_target_verified: false
+verification_status: verified
+auto_eligible: true
+config_paths:
+  project: "${profile.workspace_root}\\.vscode\\mcp.json"
+detect_commands: [code]
+instruction_paths:
+  - "${profile.workspace_root}\\.github\\copilot-instructions.md"
+note: "Tool allowlist support is unverified. VS Code receives no auto-approval configuration."

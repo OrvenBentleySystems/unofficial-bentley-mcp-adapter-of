@@ -1,0 +1,43 @@
+id: staadpro
+display: STAAD.Pro
+version: 1.0.0
+server:
+  package: openstaad-mcp
+  pinned: "1.2.0"
+  launch:
+    command: "${machine.executables.uvx}"
+    args:
+      - --offline
+      - --from
+      - "git+https://github.com/BentleySystems/openstaad-mcp@v1.2.0"
+      - openstaad-mcp
+      - --allowed-dirs
+      - "${profile.allowed_directory}"
+  transport: stdio
+requires:
+  application: STAAD.Pro
+  application_id: staadpro
+  process_names: [Bentley.Staad.exe]
+  min_version: "2025"
+  verified_version: "26.0.0.340"
+  version_record_key: STAAD.Pro version
+  server_version_record_key: openstaad-mcp tag
+  model_check: staad_com
+network:
+  uses_port: false
+preflight:
+  - tool: discover_api
+  - tool: list_instances
+  - tool: get_status
+    expect: {connected: true}
+    expect_non_empty: [model_path]
+tiers:
+  read: [discover_api, read_skills, list_instances, get_status]
+  guided: []
+  full: ["*"]
+never_auto_approve: [execute_code]
+compat:
+  tested_clients: [copilot-cli, vscode-copilot]
+  verified_clients: [copilot-cli]
+inventory:
+  verified_count: 5

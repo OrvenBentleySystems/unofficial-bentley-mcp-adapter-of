@@ -1,0 +1,387 @@
+Bentley MCP Adapter cleanup baseline
+Recorded: 2026-09-07
+Python: 3.13.15
+
+PREFLIGHT CONTRACT
+PASS 1: machine.json present and current
+PASS 2: version record complete
+PASS 3: required application processes running
+PASS 4: models or projects open
+PASS 5: ports listening with expected process identity
+PASS 6: application and server pins match the version record
+PASS 7: allowed directory accepted
+PASS 8: read-only MCP calls matched expectations
+
+TEST CONTRACT
+PASS test_synced_allowed_directory_is_rejected
+PASS test_automatic_approval_settings_are_rejected
+PASS test_emitted_configs_contain_pins_and_no_secret_values
+PASS test_plaxis_untitled_project_is_named_failure
+PASS test_staad_running_without_model_is_named_failure
+PASS test_collision_wins_over_credential_diagnosis
+PASS test_duplicate_listener_rows_for_same_pid_are_not_collision
+PASS test_preflight_stage_exit_codes_are_distinct
+PASS test_wrong_single_owner_is_identity_mismatch
+PASS test_guided_tier_extends_read_tier
+PASS test_read_tier_excludes_never_auto_approve
+PASS test_foreign_machine_is_rejected
+PASS test_plaxis_year_version_alias
+PASS test_todo_is_incomplete
+RESULT: 14 tests passed
+
+DETERMINISTIC CONFIG CONTRACT
+Generation timestamp fixed by the baseline runner: 2026-09-07T02:54:00+00:00
+Copilot CLI SHA256: 833ECC9DB75C414F646C970F9B906536C20C272942A4003222D6C0E13B168B53
+VS Code SHA256: BBC8F7CBB02FEA5446D98FE605CED685932E90778AC478566A8E7E78E2BFC5E9
+
+CONTRACT RULES
+Invariant:
+  Preflight passes 8/8 for cloud-provider deployments.
+  All 14 fault and policy tests pass.
+  Copilot CLI and VS Code reference configs remain byte-identical.
+  Console entry point remains: bentley-adapter = core.cli:main
+  All 24 existing wheel entries remain present with the same import paths and
+  behavior.
+  MIT package metadata is present.
+  A non-editable wheel install succeeds.
+
+Additive:
+  New packaged files are required for Stage 4 features.
+  New CLI subcommands are allowed when existing signatures and output remain.
+  Preflight stage 9 is allowed only when a local provider is configured. The
+  cloud-provider path remains eight stages.
+
+Regression definition:
+  A regression changes an invariant. A new file, subcommand, or discovered
+  target is not a regression. Report wheel changes as 24 existing entries
+  intact, N entries added, with every addition named and explained.
+
+EXISTING WHEEL ENTRY CONTRACT
+Existing file count: 24
+Entry point:
+  [console_scripts]
+  bentley-adapter = core.cli:main
+
+Files:
+  bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/modules/microstation/module.yaml
+  bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/modules/plaxis2d-input/module.yaml
+  bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/modules/plaxis2d-output/module.yaml
+  bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/modules/staadpro/module.yaml
+  bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/copilot-cli/target.yaml
+  bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/vscode-copilot/target.yaml
+  bentley_mcp_adapter-0.1.0.dist-info/entry_points.txt
+  bentley_mcp_adapter-0.1.0.dist-info/METADATA
+  bentley_mcp_adapter-0.1.0.dist-info/RECORD
+  bentley_mcp_adapter-0.1.0.dist-info/top_level.txt
+  bentley_mcp_adapter-0.1.0.dist-info/WHEEL
+  core/__init__.py
+  core/__main__.py
+  core/cli.py
+  core/common.py
+  core/emit/__init__.py
+  core/emit/emitter.py
+  core/preflight/__init__.py
+  core/preflight/checks.py
+  core/preflight/mcp_client.py
+  core/resolve/__init__.py
+  core/resolve/resolver.py
+  core/tiers/__init__.py
+  core/tiers/policy.py
+
+Stage 4 changes must preserve every invariant above. Generated timestamps are
+fixed by the baseline runner before byte comparison.
+
+CLEANUP REPLAY RECORD
+Group 1, generated artifacts and caches:
+  PASS preflight 8/8
+  PASS tests 14/14
+  PASS generated configs byte-identical
+  PASS wheel manifest and entry point identical
+  PASS wheel build and non-editable install
+Group 2, scratch and superseded files:
+  No candidates beyond generated distribution output already removed.
+Group 3, dead code:
+  Removed one unused standard-library import.
+  PASS preflight 8/8
+  PASS tests 14/14
+  PASS generated configs byte-identical
+  PASS wheel manifest and entry point identical
+  PASS wheel build and non-editable install
+Group 4, duplicated logic:
+  No consolidation met the behavior-preservation proof threshold.
+Group 5, naming:
+  Existing module, target, and core names are consistent. No rename made.
+Machine-specific cleanup:
+  Removed live machine.json and added machine.example.json.
+  PASS fresh resolve outside the repository
+  PASS preflight 8/8
+  PASS tests 14/14
+  PASS generated configs byte-identical
+  PASS installed wheel unchanged
+Sensitive-data scan:
+  PASS no operator username, machine name, user-profile absolute path,
+  credential value, token value, password value, screenshot, generated client
+  config, environment file, or log remains in the repository.
+Git history:
+  NOT AVAILABLE. This folder had no .git directory, so there was no history to
+  inspect or rewrite.
+
+FINAL PUBLICATION REPLAY
+  PASS clean-copy README and INSTALL flow
+  PASS preflight 8/8
+  PASS tests 14/14
+  PASS generated configs byte-identical
+  PASS original 24-file wheel manifest
+  PASS original console entry point
+  PASS MIT package metadata
+  PASS non-editable wheel install
+
+STAGE 4 CONTRACT AMENDMENT REPLAY
+Task 0, contract update:
+  PASS preflight 8/8
+  PASS baseline tests 14/14
+  PASS Copilot CLI and VS Code configs byte-identical
+  PASS 24 existing wheel entries intact
+  PASS console entry point unchanged
+  PASS MIT package metadata and wheel install
+  ADDED 0 wheel entries
+
+Task 1, target discovery abstraction:
+  PASS preflight 8/8
+  PASS baseline tests 14/14
+  PASS one additive target-discovery test
+  PASS Copilot CLI and VS Code configs byte-identical
+  PASS no target id appears in core
+  PASS 24 existing wheel entries intact
+  PASS console entry point unchanged
+  PASS wheel install
+  ADDED 3 wheel entries:
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/copilot-cli/writer.py
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/vscode-copilot/writer.py
+    core/emit/writer_api.py
+
+Stage 4 client writer 1, Codex:
+  PASS preflight 8/8
+  PASS baseline tests 14/14
+  PASS two additive tests: target discovery and Codex TOML
+  PASS Copilot CLI and VS Code configs byte-identical
+  PASS 24 original wheel entries intact
+  PASS console entry point unchanged
+  PASS wheel install
+  ADDED 5 wheel entries total
+  NEW SINCE PREVIOUS REPLAY:
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/codex/target.yaml
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/codex/writer.py
+
+Stage 4 client writer 2, Claude Code:
+  PASS preflight 8/8
+  PASS baseline tests 14/14
+  PASS three additive tests total
+  PASS Copilot CLI and VS Code configs byte-identical
+  PASS 24 original wheel entries intact
+  PASS console entry point unchanged
+  PASS wheel install
+  ADDED 7 wheel entries total
+  NEW SINCE PREVIOUS REPLAY:
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/claude-code/target.yaml
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/claude-code/writer.py
+
+Stage 4 client writer 3, Claude Desktop:
+  PASS preflight 8/8
+  PASS baseline tests 14/14
+  PASS four additive tests total
+  PASS Copilot CLI and VS Code configs byte-identical
+  PASS 24 original wheel entries intact
+  PASS console entry point unchanged
+  PASS wheel install
+  ADDED 9 wheel entries total
+  NEW SINCE PREVIOUS REPLAY:
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/claude-desktop/target.yaml
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/claude-desktop/writer.py
+
+Stage 4 client writer 4, Cline:
+  PASS preflight 8/8
+  PASS baseline tests 14/14
+  PASS five additive tests total
+  PASS Copilot CLI and VS Code configs byte-identical
+  PASS 24 original wheel entries intact
+  PASS console entry point unchanged
+  PASS wheel install
+  ADDED 11 wheel entries total
+  NEW SINCE PREVIOUS REPLAY:
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/cline/target.yaml
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/cline/writer.py
+
+Stage 4 client writer 5, Kilo Code:
+  PASS preflight 8/8
+  PASS baseline tests 14/14
+  PASS six additive tests total
+  PASS Copilot CLI and VS Code configs byte-identical
+  PASS 24 original wheel entries intact
+  PASS console entry point unchanged
+  PASS wheel install
+  ADDED 13 wheel entries total
+  NEW SINCE PREVIOUS REPLAY:
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/kilocode/target.yaml
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/kilocode/writer.py
+
+Stage 4 client writer 6, Cursor:
+  PASS preflight 8/8
+  PASS baseline tests 14/14
+  PASS seven additive tests total
+  PASS Copilot CLI and VS Code configs byte-identical
+  PASS 24 original wheel entries intact
+  PASS console entry point unchanged
+  PASS wheel install
+  ADDED 15 wheel entries total
+  NEW SINCE PREVIOUS REPLAY:
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/cursor/target.yaml
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/cursor/writer.py
+
+Stage 4 client writer 7, OpenCode:
+  PASS preflight 8/8
+  PASS baseline tests 14/14
+  PASS eight additive tests total
+  PASS Copilot CLI and VS Code configs byte-identical
+  PASS 24 original wheel entries intact
+  PASS console entry point unchanged
+  PASS wheel install
+  ADDED 17 wheel entries total
+  NEW SINCE PREVIOUS REPLAY:
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/opencode/target.yaml
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/opencode/writer.py
+
+Stage 4 client writer 8, Continue:
+  PASS preflight 8/8
+  PASS baseline tests 14/14
+  PASS nine additive tests total
+  PASS Copilot CLI and VS Code configs byte-identical
+  PASS 24 original wheel entries intact
+  PASS console entry point unchanged
+  PASS wheel install
+  ADDED 19 wheel entries total
+  NEW SINCE PREVIOUS REPLAY:
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/continue/target.yaml
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/targets/continue/writer.py
+  WRITER API RESULT:
+    Continue emitted both YAML array and JSON fallback artifacts through the
+    existing multi-artifact writer contract. No Continue-specific core branch
+    was added.
+  SAFETY REPLAY:
+    PASS 24 total tests after adding hand-written-file preservation
+    PASS Continue fallback moved outside its auto-loaded mcpServers directory
+    PASS OpenCode root object contains only schema-supported keys
+    PASS 24 original wheel entries intact, 19 added total
+  FINAL ALL-WRITER REPLAY:
+    PASS 25 total tests, including all ten discovered targets with all four modules
+    PASS preflight 8/8
+    PASS Copilot CLI and VS Code configs byte-identical
+    PASS hand-written whole-application config preservation
+    PASS 24 original wheel entries intact, 19 added total
+    PASS console entry point unchanged and wheel install
+
+DETECTED CLIENT REGISTRATION
+  VERIFIED VS Code Copilot generated project config
+  VERIFIED Codex generated TOML merged with unrelated settings preserved
+  VERIFIED Claude Code generated project config
+  VERIFIED Cline generated MCP entries with autoApprove empty
+  Each config returned:
+    MicroStation microstation_get_file_info, 25 tools
+    STAAD.Pro get_status, 5 tools
+    PLAXIS 2D Input connection_status, 34 tools
+  CLOSED exact generated VS Code registration limit
+
+STAGE 4 TASK 2, LLAMA.CPP PROVIDER
+  PASS cloud-provider preflight remains 8/8
+  PASS baseline tests 14/14
+  PASS 30 total tests, including provider discovery, emission, budget, Full
+  tier refusal, and loopback stage 9
+  PASS Copilot CLI and VS Code configs byte-identical
+  PASS 24 original wheel entries intact
+  PASS console entry point unchanged and wheel install
+  ADDED 24 wheel entries total
+  NEW SINCE CLIENT WRITERS:
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/providers/llamacpp/provider.yaml
+    bentley_mcp_adapter-0.1.0.data/data/share/bentley-mcp-adapter/providers/llamacpp/writer.py
+    core/budget.py
+    core/provider.py
+    core/provider_api.py
+  MACHINE RESULT:
+    llama-server was not installed or listening on port 8080.
+    Provider guidance emitted for detected Codex and Cline locations.
+    Read budget for three enabled modules: 27 tools, estimated 1432 tokens.
+    Full budget for three enabled modules: 64 tools, estimated 3404 tokens.
+    Full-tier provider emission refused with exit 2.
+    Stage 9 returned LOCAL_MODEL_UNREACHABLE with exit 18 because no process
+    listened on port 8080.
+    No local-model engineering chain is claimed as verified.
+  SAFETY REPLAY:
+    PASS distinct unreachable, alias, HTTP, and tool-call failure classes
+    PASS unenforced-client exposed_tool_count reports the actual catalogue
+    PASS provider and target paths use shared token and path resolution
+    PASS Full tier blocked in both provider and MCP config emission paths
+    PASS alias validation and configurable completion timeout
+    PASS 30 tests, 24 original entries intact, 24 added total
+  FINAL TASK 2 REPLAY:
+    PASS 31 total tests
+    PASS cloud-provider preflight remains 8/8
+    PASS Copilot CLI and VS Code configs byte-identical
+    PASS 24 original wheel entries intact, 24 added total
+    PASS console entry point unchanged and wheel install
+    PASS actual absent-provider stage 9 returned LOCAL_MODEL_UNREACHABLE exit 18
+
+STAGE 4 TASK 3, SMART DEPLOY
+  PASS runtime detect reports applications, clients, config writability, and
+  local-provider reachability
+  PASS --auto selects five verified clients and names every shape-only skip
+  PASS hand-written Codex and Cline settings preserved through entry merges
+  PASS deploy.bat --check changed no existing repository file
+  PASS full deploy pause, apply, and preflight 8/8
+  PASS baseline tests 14/14, 35 total tests
+  PASS Copilot CLI and VS Code configs byte-identical
+  PASS 24 original wheel entries intact, 26 added total
+  PASS console entry point unchanged and wheel install
+  PASS live detect selected five verified clients and named five shape-only skips
+  PASS normal deploy completed after explicit YES confirmation
+  PASS Cline manual provider action surfaced
+
+STAGE 4 TASK 4, HARNESS DELIVERY
+  PASS emit-context --auto selected only verified detected clients
+  PASS Copilot and VS Code shared path deduplicated
+  PASS hand-written instruction collision produced a generated sibling
+  PASS one harness plus one skill source emitted
+  PASS baseline tests 14/14, 37 total tests
+  PASS Copilot CLI and VS Code configs byte-identical
+  PASS 24 original wheel entries intact, 29 added total
+  PASS console entry point unchanged and wheel install
+  PASS four unique instruction files delivered for five verified clients
+
+STAGE 4 TASK 5, DOCUMENTATION
+  PASS README remains under 200 lines and keeps the required section order
+  PASS three-tier client status is current
+  PASS local model chain is explicitly unverified
+  PASS closure step names llama-server on the operator machine
+  PASS final preflight 8/8
+  PASS baseline tests 14/14, 37 total tests
+  PASS Copilot CLI and VS Code configs byte-identical
+  PASS 24 original wheel entries intact, 29 added total
+  PASS console entry point unchanged and wheel install
+
+PUBLIC RELEASE SECURITY REPLAY
+  PASS pip-audit: PyYAML 6.0.3, no known vulnerabilities
+  PASS Bandit high-severity findings fixed
+  ACCEPTED nine remaining Bandit findings with reasons in
+  docs/development/SECURITY-REVIEW.md
+  PASS 41 total tests, one symlink test skipped where Windows denied symlink
+  creation
+  PASS cloud-provider preflight 8/8
+  PASS Copilot CLI and VS Code configs byte-identical
+  PASS 24 original wheel entries intact, 29 added total
+  PASS console entry point unchanged and wheel install
+
+PUBLIC RELEASE CLEAN-CLONE REPLAY
+  PASS source runtime packages removed from the verification clone after wheel
+  installation
+  PASS deploy.bat --check through the installed wheel
+  PASS preflight 8/8
+  PASS no existing clone file changed

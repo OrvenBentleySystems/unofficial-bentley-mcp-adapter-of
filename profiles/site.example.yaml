@@ -1,0 +1,57 @@
+schema_version: 1
+site_name: operator-machine
+workspace_root: "C:\\path\\to\\workspace"
+allowed_directory: "C:\\mcp-work"
+machine_max_age_hours: 24
+project_share_paths: []
+version_record:
+  date: "2026-09-07"
+  operator: "TODO"
+  machine: "TODO"
+  os build: "TODO"
+  MicroStation build: "26.00.01.65"
+  STAAD.Pro version: "26.0.0.340"
+  PLAXIS version: "2023.2.1.1079"
+  openstaad-mcp tag: "1.2.0"
+  plaxis-mcp version: "0.3.5"
+  AI client + version: "GitHub Copilot app, TODO version"
+  model identifier: "TODO"
+  temperature: "TODO"
+  allowed directory: "C:\\mcp-work"
+port_map:
+  plaxis2d-input: 10000
+  plaxis2d-output: 10001
+  plaxis3d-input: 10002
+  plaxis3d-output: 10003
+modules:
+  microstation:
+    tier: read
+  staadpro:
+    tier: read
+  plaxis2d-input:
+    tier: read
+  plaxis2d-output: false
+targets:
+  copilot-cli:
+    output: "%USERPROFILE%\\.copilot\\mcp-config.json"
+  vscode-copilot:
+    output: "${profile.workspace_root}\\.vscode\\mcp.json"
+  codex:
+    output: "%USERPROFILE%\\.codex\\config.toml"
+  claude-code:
+    output: "${profile.workspace_root}\\.mcp.json"
+  claude-desktop:
+    output: "%APPDATA%\\Claude\\claude_desktop_config.json"
+  cline:
+    output: "%APPDATA%\\Code\\User\\globalStorage\\saoudrizwan.claude-dev\\settings\\cline_mcp_settings.json"
+    cli_output: "%USERPROFILE%\\.cline\\mcp.json"
+  kilocode:
+    output: "${profile.workspace_root}\\.kilo\\kilo.jsonc"
+    global_output: "%USERPROFILE%\\.config\\kilo\\kilo.jsonc"
+  cursor:
+    output: "${profile.workspace_root}\\.cursor\\mcp.json"
+  opencode:
+    output: "${profile.workspace_root}\\opencode.json"
+  continue:
+    output: "${profile.workspace_root}\\.continue\\mcpServers\\bentley.yaml"
+    fallback_output: "${profile.workspace_root}\\.continue\\bentley-mcp.fallback.json"

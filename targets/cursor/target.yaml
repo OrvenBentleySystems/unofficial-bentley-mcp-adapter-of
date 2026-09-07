@@ -1,0 +1,17 @@
+id: cursor
+display: Cursor
+format: json
+root_key: mcpServers
+requires_type: false
+supports_inputs: false
+supports_tool_allowlist: false
+verified: false
+verification_status: shape-only
+auto_eligible: false
+detect_commands: [cursor]
+config_paths:
+  user: "%USERPROFILE%\\.cursor\\mcp.json"
+  project: "${profile.workspace_root}\\.cursor\\mcp.json"
+restart_note: "Keep Cursor Auto-run off and review each mutating tool call."
+instruction_paths:
+  - "${profile.workspace_root}\\.cursor\\rules\\bentley-mcp.mdc"

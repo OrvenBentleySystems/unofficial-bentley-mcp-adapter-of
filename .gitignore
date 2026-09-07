@@ -1,0 +1,41 @@
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+*.pyd
+.Python
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+.venv/
+
+# Build outputs
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+
+# Machine and operator-specific state
+machine.json
+detected.json
+profiles/site.yaml
+.env
+.env.*
+!.env.example
+*.log
+
+# Generated client configurations
+mcp-config.json
+mcp-config.*.json
+.vscode/mcp.json
+.vscode/mcp.*.json
+.mcp.json
+AGENTS.md
+CLAUDE.md
+.github/copilot-instructions.md
+.clinerules/bentley-mcp.md
+.kilocode/rules/bentley-mcp.md
+.continue/rules/bentley-mcp.md
+.cursor/rules/bentley-mcp.mdc

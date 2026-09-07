@@ -1,0 +1,98 @@
+id: plaxis2d-input
+display: PLAXIS 2D Input
+version: 1.0.0
+server:
+  package: plaxis-mcp
+  pinned: "0.3.5"
+  distribution: "PyPI evaluation path; signed plaxis-mcp.exe required for production"
+  launch:
+    command: "${machine.executables.uvx}"
+    args:
+      - --offline
+      - --python
+      - "3.13"
+      - --from
+      - "plaxis-mcp==0.3.5"
+      - plaxis-mcp
+      - serve
+      - --role
+      - input
+  transport: stdio
+requires:
+  application: PLAXIS 2D
+  application_id: plaxis2d
+  process_names: [Plaxis2DXInput.exe]
+  min_version: "V22"
+  verified_version: "2023.2.1.1079"
+  version_record_key: PLAXIS version
+  server_version_record_key: plaxis-mcp version
+  runtime: {python: "3.8.10", profile: legacy-38}
+  model_check: window_title
+  model_title_reject: ["(Untitled)", "[Untitled]"]
+network:
+  uses_port: true
+  host: 127.0.0.1
+  default_port: 10000
+  port_owner: application
+  expected_process: Plaxis2DXInput.exe
+  expected_identity: PLAXIS 2D Input
+  conflicts_with: [plaxis3d-input]
+preflight:
+  - tool: connect
+  - tool: connection_status
+    expect: {connected: true}
+  - tool: project_info
+    expect_non_empty: [project_title, filename]
+  - tool: list_materials
+  - tool: model_state
+tiers:
+  read:
+    - connect
+    - connection_status
+    - project_info
+    - list_objects
+    - list_phases
+    - list_materials
+    - list_members
+    - inspect
+    - model_state
+  guided:
+    - +create_point
+    - create_line
+    - create_polygon
+    - create_borehole
+    - create_soillayer
+    - create_material
+    - assign_material
+  full: ["*"]
+never_auto_approve:
+  - set_property
+  - call_method
+  - new_project
+  - open_project
+  - close_project
+  - recover_project
+  - save_project
+  - create_phase
+  - set_current_phase
+  - set_phase_property
+  - activate
+  - deactivate
+  - calculate
+  - view_results
+  - set_mode
+  - generate_mesh
+  - create_point
+  - create_line
+  - create_polygon
+  - create_borehole
+  - create_soillayer
+  - create_material
+  - assign_material
+  - create_structural_element
+compat:
+  tested_clients: [copilot-cli, vscode-copilot]
+  verified_clients: [copilot-cli]
+inventory:
+  verified_count: 34
+  todo: "list_phases is not a passing baseline probe because the verified disposable project exposes no staged phases."

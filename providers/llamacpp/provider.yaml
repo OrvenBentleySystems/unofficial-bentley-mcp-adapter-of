@@ -1,0 +1,16 @@
+id: llamacpp
+display: llama.cpp llama-server
+version: 1.0.0
+transport: openai-compatible-http
+default_host: 127.0.0.1
+default_port: 8080
+requires_jinja: true
+supported_targets:
+  codex: fragment
+  cline: ui-instructions
+  kilocode: generated-fragment
+  continue: standalone-model-block
+source:
+  repository: "https://github.com/ggml-org/llama.cpp"
+  license: MIT
+

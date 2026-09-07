@@ -1,0 +1,18 @@
+id: continue
+display: Continue
+format: yaml-and-json
+root_key: mcpServers
+requires_type: false
+supports_inputs: false
+supports_tool_allowlist: false
+verified: false
+verification_status: shape-only
+auto_eligible: false
+detect_commands: [continue]
+source: "https://docs.continue.dev/customize/deep-dives/mcp"
+config_paths:
+  yaml: "${profile.workspace_root}\\.continue\\mcpServers\\bentley.yaml"
+  json_fallback: "${profile.workspace_root}\\.continue\\bentley-mcp.fallback.json"
+restart_note: "Continue loads standalone MCP blocks from .continue/mcpServers."
+instruction_paths:
+  - "${profile.workspace_root}\\.continue\\rules\\bentley-mcp.md"

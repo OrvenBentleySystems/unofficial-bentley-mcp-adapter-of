@@ -1,0 +1,17 @@
+id: claude-code
+display: Claude Code
+format: json
+root_key: mcpServers
+requires_type: false
+supports_inputs: false
+supports_tool_allowlist: false
+verified: true
+verification_status: verified
+auto_eligible: true
+detect_commands: [claude]
+config_paths:
+  project: "${profile.workspace_root}\\.mcp.json"
+  user: "%USERPROFILE%\\.claude.json"
+restart_note: "Retain Claude Code server trust and per-tool approval prompts."
+instruction_paths:
+  - "${profile.workspace_root}\\CLAUDE.md"
