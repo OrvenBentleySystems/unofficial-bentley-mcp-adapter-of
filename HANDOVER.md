@@ -54,6 +54,9 @@ No gateway, tunnel, remote transport, WSL, or Docker path is included.
 - Stock `plaxis-mcp` support for the operator's PLAXIS 2023.2 Python 3.8.17
   bundle. The live proof used a local patch absent upstream.
 - Live verification of a PLAXIS 2024.2+ `current-312` installation.
+- PLAXIS 2D 2025.1.3.5 is known incompatible with pinned `plaxis-mcp` 0.3.5.
+  Stock discovery rejects Distribution V3/Python 3.12.12, and an isolated
+  local runtime-profile validation did not authenticate.
 - A production signed `plaxis-mcp.exe` path on this machine.
 
 ## TODOs and closing evidence

@@ -396,3 +396,10 @@ PLAXIS COMPATIBILITY CORRECTION
   recorded 2024.2+ generation.
   NEWER generations remain unverified and must pass upstream runtime
   attestation plus stage 8 live reads.
+  TESTED PLAXIS 2D 2025.1.3.5:
+    stock plaxis-mcp 0.3.5 rejected the installation as not a certified
+    discovery result
+    installed runtime was Python Distribution V3, Python 3.12.12
+    isolated V3/3.12.12 validation reached the server but did not authenticate
+    adapter now rejects this exact build as known incompatible
+  PASS 45 total tests, one platform symlink test skipped

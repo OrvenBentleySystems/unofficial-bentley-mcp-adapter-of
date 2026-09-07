@@ -24,3 +24,5 @@
 - Corrected PLAXIS compatibility: the 2023.2 proof used an uncertified local
   runtime-profile patch, while stock 0.3.5 accepts exact upstream ABIs and
   declares `current-312` for the 2024.2+ generation.
+- Recorded PLAXIS 2D 2025.1.3.5 as known incompatible with pinned
+  `plaxis-mcp` 0.3.5 after stock discovery and isolated V3 runtime tests.

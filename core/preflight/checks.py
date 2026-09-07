@@ -351,6 +351,17 @@ def _application_version_status(
         expected = requires.get("verified_version")
         matched = _version_matches(version, expected)
         return matched, matched, f"exact verified version {expected}"
+    for incompatible in policy.get("known_incompatible") or []:
+        if (
+            isinstance(incompatible, dict)
+            and _version_matches(version, incompatible.get("version"))
+        ):
+            return (
+                False,
+                False,
+                "known incompatible with the pinned server: "
+                + str(incompatible.get("reason") or "no compatible runtime profile"),
+            )
     verified_versions = list(policy.get("verified_versions") or [])
     for verified in verified_versions:
         if _version_matches(version, verified):

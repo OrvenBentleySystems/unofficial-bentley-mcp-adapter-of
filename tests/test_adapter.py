@@ -126,14 +126,23 @@ class VersionTests(unittest.TestCase):
         self.assertTrue(supported)
         self.assertTrue(verified)
 
-    def test_upstream_current_plaxis_generation_reaches_live_probes(self) -> None:
+    def test_upstream_2024_2_generation_reaches_live_probes(self) -> None:
         requires = load_module("plaxis2d-input")["requires"]
         supported, verified, reason = _application_version_status(
-            requires, "25.01.03.005"
+            requires, "2024.2.0"
         )
         self.assertTrue(supported)
         self.assertFalse(verified)
         self.assertIn("not live-verified", reason)
+
+    def test_plaxis_2025_1_is_known_incompatible_with_pinned_server(self) -> None:
+        requires = load_module("plaxis2d-input")["requires"]
+        supported, verified, reason = _application_version_status(
+            requires, "25.01.03.005"
+        )
+        self.assertFalse(supported)
+        self.assertFalse(verified)
+        self.assertIn("Python 3.12.12", reason)
 
     def test_unsupported_intermediate_plaxis_build_is_rejected(self) -> None:
         requires = load_module("plaxis2d-input")["requires"]

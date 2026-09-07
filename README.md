@@ -23,7 +23,7 @@ Verified on 2026-09-07:
 | STAAD.Pro | 2026 version 26.0.0.340; OpenSTAAD read passed |
 | PLAXIS 2D | 2023.2.1.1079 Input read passed using a local, upstream-uncertified `legacy-38-2023` patch |
 | Client | GitHub Copilot app 1.0.83-5 |
-| Adapter | 0.1.0; eight required preflight stages, 14 frozen baseline tests, and 30 additive tests passed |
+| Adapter | 0.1.0; eight required preflight stages, 14 frozen baseline tests, and 31 additive tests passed |
 
 Not yet verified: a clean second machine, PLAXIS Output, stable provenance for
 the OpenSTAAD executable used during live validation, and a local llama.cpp
@@ -129,6 +129,8 @@ variable. See [docs/PORTS.md](docs/PORTS.md).
   Python 3.8.17. The recorded proof used an uncertified local patch.
 - PLAXIS 2024.2+ is allowed to reach upstream runtime attestation and live
   reads, but no newer application build has been live-verified here.
+- PLAXIS 2D 2025.1.3.5 is known incompatible with pinned `plaxis-mcp` 0.3.5:
+  it uses Python Distribution V3 and bundled Python 3.12.12.
 - No clean second-machine run has been completed.
 - The live OpenSTAAD executable did not have stable release provenance.
 - Read tiers reduce the Copilot tool surface. The generated VS Code file

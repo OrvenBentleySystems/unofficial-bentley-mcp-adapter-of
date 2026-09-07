@@ -75,7 +75,7 @@ Recommended repository topics:
 
 - [x] Cloud preflight: 8/8.
 - [x] Baseline tests: 14/14.
-- [x] Full suite: 44 tests, with one platform-dependent symlink test skipped
+- [x] Full suite: 45 tests, with one platform-dependent symlink test skipped
   when Windows did not permit symlink creation.
 - [x] Copilot CLI and VS Code reference configs byte-identical.
 - [x] All 24 original wheel entries intact; 29 additive entries.
