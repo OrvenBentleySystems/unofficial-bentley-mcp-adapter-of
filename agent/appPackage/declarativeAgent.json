@@ -1,0 +1,23 @@
+{
+    "$schema": "https://developer.microsoft.com/json-schemas/copilot/declarative-agent/v1.8/schema.json",
+    "version": "v1.8",
+    "name": "STAAD Assistant${{APP_NAME_SUFFIX}}",
+    "description": "Reports live, read-only STAAD.Pro runtime status from the developer's workstation through the OpenSTAAD MCP server.",
+    "instructions": "$[file('instruction.txt')]",
+    "conversation_starters": [
+        {
+            "title": "Live STAAD status",
+            "text": "Use the configured STAAD MCP tools to inspect the current runtime. Do not use chat history, screenshots, expected values, or cached answers. Return the live connection state, STAAD.Pro version if available, available instances, selected process identity if available, and current model path. Identify the tool that supplied each result. If a field is unavailable, say unavailable. Do not invent it."
+        },
+        {
+            "title": "Model summary",
+            "text": "List the running STAAD.Pro instances, then give me the read-only model summary for the instance I choose."
+        }
+    ],
+    "actions": [
+        {
+            "id": "staadMcp",
+            "file": "ai-plugin.json"
+        }
+    ]
+}

@@ -1,0 +1,101 @@
+{
+  "tools": [
+    {
+      "name": "list_instances",
+      "description": "List all running STAAD.Pro instances (upstream OpenSTAAD tool).\n\nReturns alias, process ID, currently open file path and STAAD version\nfor each instance. Aliases (e.g. staadPro1) are stable while the gateway runs.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {},
+        "type": "object"
+      },
+      "outputSchema": {
+        "properties": {
+          "result": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "result"
+        ],
+        "type": "object",
+        "x-fastmcp-wrap-result": true
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_status",
+      "description": "Check the live connection to a STAAD.Pro instance (upstream OpenSTAAD tool).\n\nReturns connected flag, STAAD version, model path, alias and whether an\nanalysis is running. Pass ``instance`` (alias from list_instances) when\nmore than one instance is running.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "instance": {
+            "anyOf": [
+              {
+                "pattern": "^staadPro[0-9]{1,4}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Instance alias returned by list_instances (e.g. staadPro1). Omit only when exactly one instance is running."
+          }
+        },
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_model_summary",
+      "description": "Read a fixed, read-only summary of the open STAAD.Pro model (gateway adapter tool).\n\nReturns model path, base unit system, node/member/plate counts, primary\nload case and load combination counts, and whether analysis results are\navailable. Implemented by the gateway via a fixed getter-only OpenSTAAD\nsnippet; it is not an upstream Bentley tool and accepts no code.",
+      "inputSchema": {
+        "additionalProperties": false,
+        "properties": {
+          "instance": {
+            "anyOf": [
+              {
+                "pattern": "^staadPro[0-9]{1,4}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "description": "Instance alias returned by list_instances (e.g. staadPro1). Omit only when exactly one instance is running."
+          }
+        },
+        "type": "object"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    }
+  ]
+}

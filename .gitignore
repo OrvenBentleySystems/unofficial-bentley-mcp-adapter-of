@@ -1,0 +1,18 @@
+# Local configuration and secrets
+.env
+.env.local
+agent/env/.env.*.user
+agent/env/.env.local
+
+# Runtime state, logs and local evidence (may contain model paths and user IDs)
+.run/
+logs/
+evidence/
+
+# Build output
+agent/appPackage/build/
+agent/build/
+adapter/.venv/
+**/__pycache__/
+.pytest_cache/
+node_modules/

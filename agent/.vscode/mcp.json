@@ -1,0 +1,8 @@
+{
+  "servers": {
+    "staadassis": {
+      "type": "http",
+      "url": "https://ck8d1ltp-18130.asse.devtunnels.ms/mcp"
+    }
+  }
+}

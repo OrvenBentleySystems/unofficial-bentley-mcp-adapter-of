@@ -1,0 +1,34 @@
+{
+    "$schema": "https://developer.microsoft.com/json-schemas/copilot/plugin/v2.4/schema.json",
+    "schema_version": "v2.4",
+    "name_for_human": "STAAD MCP",
+    "description_for_human": "Read-only live status of STAAD.Pro on the developer's workstation via the OpenSTAAD MCP server.",
+    "description_for_model": "Read-only access to running STAAD.Pro instances: list instances, connection status, and a fixed model summary. Cannot modify, analyze, or save models.",
+    "contact_email": "orven.fajardo@bentley.com",
+    "namespace": "staadmcp",
+    "functions": [
+        { "name": "list_instances" },
+        { "name": "get_status" },
+        { "name": "get_model_summary" }
+    ],
+    "runtimes": [
+        {
+            "type": "RemoteMCPServer",
+            "spec": {
+                "url": "${{MCP_SERVER_URL}}",
+                "mcp_tool_description": {
+                    "file": "mcp-tools.json"
+                }
+            },
+            "run_for_functions": [
+                "list_instances",
+                "get_status",
+                "get_model_summary"
+            ],
+            "auth": {
+                "type": "OAuthPluginVault",
+                "reference_id": "${{MCP_DA_AUTH_ID_STAADASSIS}}"
+            }
+        }
+    ]
+}

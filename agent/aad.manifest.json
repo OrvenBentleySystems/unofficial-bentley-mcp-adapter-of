@@ -1,0 +1,38 @@
+{
+    "id": "${{AAD_APP_OBJECT_ID}}",
+    "appId": "${{AAD_APP_CLIENT_ID}}",
+    "displayName": "STAAD Assistant MCP Gateway ${{TEAMSFX_ENV}}",
+    "signInAudience": "AzureADMyOrg",
+    "identifierUris": [
+        "${{MCP_DA_APPLICATION_ID_URI_STAADASSIS}}"
+    ],
+    "api": {
+        "requestedAccessTokenVersion": 2,
+        "oauth2PermissionScopes": [
+            {
+                "id": "${{AAD_APP_ACCESS_AS_USER_PERMISSION_ID}}",
+                "value": "access_as_user",
+                "type": "User",
+                "isEnabled": true,
+                "adminConsentDisplayName": "Read STAAD.Pro runtime status as the signed-in user",
+                "adminConsentDescription": "Allows STAAD Assistant to call the read-only STAAD MCP gateway on behalf of the signed-in user.",
+                "userConsentDisplayName": "Read STAAD.Pro runtime status as you",
+                "userConsentDescription": "Allows STAAD Assistant to call the read-only STAAD MCP gateway on your behalf."
+            }
+        ],
+        "preAuthorizedApplications": [
+            {
+                "appId": "ab3be6b7-f5df-413d-ac2d-abf1e3fd9c0b",
+                "delegatedPermissionIds": [
+                    "${{AAD_APP_ACCESS_AS_USER_PERMISSION_ID}}"
+                ]
+            }
+        ]
+    },
+    "web": {
+        "redirectUris": [
+            "https://teams.microsoft.com/api/platform/v1.0/oAuthConsentRedirect"
+        ]
+    },
+    "requiredResourceAccess": []
+}

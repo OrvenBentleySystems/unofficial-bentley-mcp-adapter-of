@@ -1,0 +1,31 @@
+[project]
+name = "staad-mcp-gateway"
+version = "0.1.0"
+description = "Authenticated, allowlisted MCP gateway exposing read-only OpenSTAAD MCP tools to a Microsoft 365 Copilot declarative agent."
+requires-python = ">=3.11,<3.14"
+dependencies = [
+    # Upstream Bentley server, pinned to the tag already used by the working CLI integration.
+    "openstaad-mcp @ git+https://github.com/BentleySystems/openstaad-mcp@v1.3.0",
+    "fastmcp>=3.2.3,<4",
+    "uvicorn>=0.30",
+]
+
+[project.scripts]
+staad-mcp-gateway = "staad_mcp_gateway.app:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "pytest-asyncio>=0.24"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/staad_mcp_gateway"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
