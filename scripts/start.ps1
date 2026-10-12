@@ -15,7 +15,7 @@ if (-not (Test-Path $GatewayPython)) { Fail "Gateway venv missing. Run: cd adapt
 $state = Get-State
 if ($state) {
     $alive = @($state.gateway_pid, $state.tunnel_pid) | Where-Object { $_ -and (Get-Process -Id $_ -ErrorAction SilentlyContinue) }
-    if ($alive) { Fail "A previous run is still active (PIDs $($alive -join ', ')). Run scripts\stop.ps1 first." }
+    if ($alive) { Fail "Already running (PIDs $($alive -join ', ')); endpoint $($state.public_url). To restart: pwsh scripts\stop.ps1; pwsh scripts\start.ps1" }
 }
 
 $agentEnv = Get-AgentEnv $EnvName

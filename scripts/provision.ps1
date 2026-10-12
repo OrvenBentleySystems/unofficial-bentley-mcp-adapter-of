@@ -14,8 +14,18 @@ if ($who -notmatch 'Microsoft 365 account is') { Fail 'Not signed in. Run: atk a
 & (Join-Path $PSScriptRoot 'validate.ps1') -SkipTests -EnvName $EnvName
 Push-Location $Agent
 try {
-    atk provision --env $EnvName --interactive false --telemetry false
-    if ($LASTEXITCODE) { Fail "atk provision failed (exit $LASTEXITCODE)." }
+    $log = [System.Collections.Generic.List[string]]::new()
+    atk provision --env $EnvName --interactive false --telemetry false 2>&1 | ForEach-Object { $log.Add("$_"); $_ }
+    if ($LASTEXITCODE) {
+        if (($log -join "`n") -match 'aadApp/create[\s\S]*Authorization_RequestDenied') {
+            Write-Host ''
+            Warn 'BLOCKED: this account may not create Entra app registrations in this tenant. Re-running will not help.'
+            Warn 'Needs a tenant Entra admin: grant the Application Developer role, OR create the app registration (no secret),'
+            Warn 'add you as Owner, then put AAD_APP_CLIENT_ID and AAD_APP_OBJECT_ID in agent\env\.env.dev and re-run.'
+            Warn 'Details: docs\RUNBOOK.md "Blocker: Entra app registration".'
+        }
+        Fail "atk provision failed (exit $LASTEXITCODE)."
+    }
 } finally { Pop-Location }
 
 $e = Get-AgentEnv $EnvName
