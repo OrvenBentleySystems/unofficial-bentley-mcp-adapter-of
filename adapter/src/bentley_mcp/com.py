@@ -351,25 +351,43 @@ class BentleyCom:
             raise BentleyError("model name must be 1..255 characters")
         app, kind, app_name = self._for_target(target)
         try:
-            design = app.ActiveDesignFile
             match = next(
                 (
                     model
-                    for model in _collect(design.Models, 500)
+                    for model in _collect(app.ActiveDesignFile.Models, 500)
                     if str(model.Name).lower() == wanted.lower()
                 ),
                 None,
             )
             if match is None:
                 raise BentleyError(f"model not found: {wanted!r}; call list_models first")
-            design.SetModelActive(match)
+            match.Activate()
         except BentleyError:
             raise
         except Exception as exc:
-            raise BentleyError(f"SetModelActive failed: {exc}") from exc
+            raise BentleyError(f"model Activate failed: {exc}") from exc
         out = self._info(app, kind, app_name)
         out["requested_model"] = wanted
         return out
+
+    @staticmethod
+    def _dlong(value: int) -> Any:
+        dlong = _ms().DLong()
+        dlong.Low = value & 0xFFFFFFFF
+        dlong.High = (value >> 32) & 0xFFFFFFFF
+        return dlong
+
+    @staticmethod
+    def _id_of(dlong: Any) -> int:
+        try:
+            return (int(dlong.High) << 32) | int(dlong.Low)
+        except Exception:
+            return int(dlong.Low) & 0xFFFFFFFF
+
+    def _element_by_id(self, app: Any, element_id: int) -> Any:
+        import ctypes
+
+        return app.ActiveDesignFile.GetElementByID(ctypes.byref(self._dlong(element_id)))
 
     def list_elements(
         self, limit: int = 100, level: str | None = None, target: Target = "auto"
@@ -378,35 +396,40 @@ class BentleyCom:
             raise BentleyError("limit must be 1..1000")
         app, kind, name = self._for_target(target)
         try:
-            elements: list[dict[str, Any]] = []
-            for element in _collect(app.ActiveModelReference.Elements, 5000):
-                try:
-                    element_id = int(element.ElementId)
-                except Exception:
-                    continue
-                level_name: str | None = None
-                try:
-                    level_name = str(element.Level.Name)
-                except Exception:
-                    pass
-                if level and (level_name or "").lower() != level.lower():
-                    continue
-                entry: dict[str, Any] = {"element_id": element_id}
-                if level_name is not None:
-                    entry["level"] = level_name
-                try:
-                    entry["type"] = int(element.Type)
-                except Exception:
-                    pass
-                elements.append(entry)
-                if len(elements) >= int(limit):
-                    break
+            largest = self._id_of(app.ActiveDesignFile.GetLargestElementID())
         except Exception as exc:
-            raise BentleyError(f"list_elements failed: {exc}") from exc
+            raise BentleyError(f"GetLargestElementID failed: {exc}") from exc
+        scan_to = min(int(largest), 5000)
+        elements: list[dict[str, Any]] = []
+        for candidate in range(1, scan_to + 1):
+            if len(elements) >= int(limit):
+                break
+            try:
+                element = self._element_by_id(app, candidate)
+            except Exception:
+                continue  # id gaps: element not found
+            if element is None:
+                continue
+            entry: dict[str, Any] = {"element_id": candidate}
+            level_name: str | None = None
+            try:
+                level_name = str(element.Level.Name)
+            except Exception:
+                pass
+            if level and (level_name or "").lower() != level.lower():
+                continue
+            if level_name is not None:
+                entry["level"] = level_name
+            try:
+                entry["type"] = int(element.Type)
+            except Exception:
+                pass
+            elements.append(entry)
         out = self._info(app, kind, name)
         out["elements"] = elements
         out["returned"] = len(elements)
-        out["scanned_limit"] = 5000
+        out["scanned_to"] = scan_to
+        out["largest_element_id"] = int(largest)
         return out
 
     def delete_element(
@@ -418,23 +441,20 @@ class BentleyCom:
             raise BentleyError("element_id must be a positive integer")
         app, kind, name = self._for_target(target)
         try:
-            model = app.ActiveModelReference
-            for element in _collect(model.Elements, 5000):
-                try:
-                    current = int(element.ElementId)
-                except Exception:
-                    continue
-                if current != element_id:
-                    continue
-                model.RemoveElement(element)
-                out = self._info(app, kind, name)
-                out["deleted"] = element_id
-                return out
+            element = self._element_by_id(app, element_id)
         except Exception as exc:
-            raise BentleyError(f"delete_element failed: {exc}") from exc
-        raise BentleyError(
-            f"element {element_id} not found in the active model (scan limit 5000)"
-        )
+            raise BentleyError(
+                f"element {element_id} not found in the active design: {exc}"
+            ) from exc
+        if element is None:
+            raise BentleyError(f"element {element_id} not found in the active design")
+        try:
+            app.ActiveModelReference.RemoveElement(element)
+        except Exception as exc:
+            raise BentleyError(f"RemoveElement failed: {exc}") from exc
+        out = self._info(app, kind, name)
+        out["deleted"] = element_id
+        return out
 
     def create_text(
         self,
@@ -453,35 +473,21 @@ class BentleyCom:
         app, kind, name = self._for_target(target)
         height_applied = height is None
         try:
-            model = app.ActiveModelReference
-            template = None
-            for holder in (model, app.ActiveDesignFile):
-                try:
-                    candidate = getattr(holder, "ActiveTemplate", None)
-                except Exception:
-                    candidate = None
-                if candidate is not None:
-                    template = candidate
-                    break
-            if template is None:
-                raise BentleyError(
-                    "no active text element template; create one in MicroStation "
-                    "or use create elements via run_python instead"
-                )
             if height is not None:
                 try:
-                    template.TextHeight = float(height)
+                    app.ActiveSettings.TextStyle.Height = float(height)
                     height_applied = True
                 except Exception:
                     pass
-            element = app.CreateTextElement(template, text, _point(origin))
-            if isinstance(element, tuple):
+            # comtypes returns [Point3d, Matrix3d, TextElement]; the element is last.
+            element = app.CreateTextElement1(None, text, _point(origin))
+            if isinstance(element, (list, tuple)):
                 element = element[-1]
-            model.AddElement(element)
+            app.ActiveModelReference.AddElement(element)
         except BentleyError:
             raise
         except Exception as exc:
-            raise BentleyError(f"CreateTextElement failed: {exc}") from exc
+            raise BentleyError(f"CreateTextElement1 failed: {exc}") from exc
         out = self._info(app, kind, name)
         out["created"] = "text"
         out["height_applied"] = height_applied

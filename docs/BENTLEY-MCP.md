@@ -10,8 +10,12 @@ MCP client ─► stdio (default)  or  http://127.0.0.1:18131/mcp
 ```
 
 **Status: live-verified on this workstation** with MicroStation 2026 (26.00.02.39) and
-OpenBuildings Designer 2024 (24.00.03.14): attach, status, line, polyline, save, fit, stdio,
-and loopback HTTP with bearer auth.
+OpenBuildings Designer 2024 (24.00.03.14). Full 15-tool pass on 2026-10-27 against a scratch DGN:
+attach, status, open, models, levels, model activation, line, polyline, text, element query,
+element delete (confirm-gated), python execute, save, fit, stdio, and loopback HTTP with bearer
+auth. Live COM facts learned: `ModelReference` has no `Elements` collection (enumerate via
+`DesignFile.GetElementByID` with `DLong{Low,High}`), models activate with `ModelReference.Activate()`,
+and `CreateTextElement1(None, text, origin)` returns `[Point3d, Matrix3d, TextElement]`.
 
 ## Prerequisites
 
@@ -84,7 +88,7 @@ Without the token the endpoint is still loopback-only, but any local process can
 | `create_text` | Place a text element | Uses the active text template; reports if `height` was applied |
 | `list_models` / `list_levels` | Enumerate models / levels | Read-only |
 | `set_active_model` | Activate a model by name | Case-insensitive |
-| `list_elements` | List element ids, levels, types | `limit` 1–1000, optional `level` filter, scans first 5000 |
+| `list_elements` | List element ids, levels, types | `limit` 1–1000, optional `level` filter; scans ids 1..min(largest, 5000) |
 | `delete_element` | Remove one element by id | Destructive; requires `confirm=true` |
 | `run_keyin` | Send one MicroStation key-in | Requires `confirm=true` |
 | `run_python` | Queue MicroStation Python via temp script + `python execute` | Requires `confirm=true`; output goes to the Python window |

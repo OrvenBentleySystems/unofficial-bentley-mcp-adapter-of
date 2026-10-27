@@ -146,10 +146,10 @@ def build_server(com: BentleyCom | None = None, token: str | None = None) -> Fas
     async def list_elements(
         limit: int = 100, level: str | None = None, target: Target = "auto"
     ) -> dict[str, Any]:
-        """List elements in the active model: id, level, type.
+        """List elements in the active design: id, level, type.
 
-        limit: 1..1000 returned. Scans at most the first 5000 elements, so
-        filtered results on large models may be partial; check scanned_limit.
+        limit: 1..1000 returned. Scans element ids 1..min(largest id, 5000),
+        so models with very high ids may need run_python instead.
         """
         return _call(app.list_elements, limit, level, target)
 
@@ -159,10 +159,10 @@ def build_server(com: BentleyCom | None = None, token: str | None = None) -> Fas
         confirm: bool = False,
         target: Target = "auto",
     ) -> dict[str, Any]:
-        """Remove one element (by element_id from list_elements) from the active model.
+        """Remove one element (by element_id from list_elements) from the active design.
 
-        Destructive: requires confirm=true. Searches only the first 5000
-        elements of the active model.
+        Destructive: requires confirm=true. Resolves the id directly in the
+        active design file.
         """
         if not confirm:
             raise ToolError("confirm=true is required for delete_element")
