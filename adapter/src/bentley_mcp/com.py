@@ -11,7 +11,11 @@ unit-tested without Bentley installed.
 
 from __future__ import annotations
 
+import itertools
 import logging
+import os
+import tempfile
+import time
 from pathlib import Path
 from typing import Any, Literal
 
@@ -81,6 +85,31 @@ def _point(value: Point) -> Any:
 
 def _xyz(point: Any) -> dict[str, float]:
     return {"x": float(point.X), "y": float(point.Y), "z": float(point.Z)}
+
+
+_run_seq = itertools.count(1)
+
+
+def _collect(collection: Any, limit: int) -> list[Any]:
+    """Materialize a COM collection, preferring native enumeration over Item()."""
+    items: list[Any] = []
+    try:
+        for item in collection:
+            items.append(item)
+            if len(items) >= limit:
+                return items
+        return items
+    except (TypeError, AttributeError):
+        items = []
+    count = int(collection.Count)
+    base = 0
+    try:
+        collection.Item(0)
+    except Exception:
+        base = 1
+    for index in range(base, min(base + count, base + limit)):
+        items.append(collection.Item(index))
+    return items
 
 
 class BentleyCom:
@@ -268,4 +297,224 @@ class BentleyCom:
         out = self._info(app, kind, name)
         out["views"] = fitted
         out["view_count"] = count
+        return out
+
+    def list_models(self, target: Target = "auto") -> dict[str, Any]:
+        app, kind, name = self._for_target(target)
+        try:
+            models = []
+            for model in _collect(app.ActiveDesignFile.Models, 500):
+                entry: dict[str, Any] = {}
+                try:
+                    entry["name"] = str(model.Name)
+                except Exception:
+                    entry["name"] = None
+                for attribute, cast in (("Is3D", bool), ("IsReadOnly", bool)):
+                    try:
+                        entry[attribute[2:].lower()] = cast(getattr(model, attribute))
+                    except Exception:
+                        continue
+                models.append(entry)
+        except Exception as exc:
+            raise BentleyError(f"list_models failed: {exc}") from exc
+        out = self._info(app, kind, name)
+        out["models"] = models
+        out["model_count"] = len(models)
+        return out
+
+    def list_levels(self, target: Target = "auto") -> dict[str, Any]:
+        app, kind, name = self._for_target(target)
+        try:
+            levels = []
+            for level in _collect(app.ActiveDesignFile.Levels, 64):
+                entry: dict[str, Any] = {}
+                try:
+                    entry["name"] = str(level.Name)
+                except Exception:
+                    entry["name"] = None
+                for attribute in ("IsDisplayed", "IsLevelUsed"):
+                    try:
+                        entry[attribute[2:].lower()] = bool(getattr(level, attribute))
+                    except Exception:
+                        continue
+                levels.append(entry)
+        except Exception as exc:
+            raise BentleyError(f"list_levels failed: {exc}") from exc
+        out = self._info(app, kind, name)
+        out["levels"] = levels
+        out["level_count"] = len(levels)
+        return out
+
+    def set_active_model(self, name: str, target: Target = "auto") -> dict[str, Any]:
+        wanted = name.strip()
+        if not wanted or len(wanted) > 255:
+            raise BentleyError("model name must be 1..255 characters")
+        app, kind, app_name = self._for_target(target)
+        try:
+            design = app.ActiveDesignFile
+            match = next(
+                (
+                    model
+                    for model in _collect(design.Models, 500)
+                    if str(model.Name).lower() == wanted.lower()
+                ),
+                None,
+            )
+            if match is None:
+                raise BentleyError(f"model not found: {wanted!r}; call list_models first")
+            design.SetModelActive(match)
+        except BentleyError:
+            raise
+        except Exception as exc:
+            raise BentleyError(f"SetModelActive failed: {exc}") from exc
+        out = self._info(app, kind, app_name)
+        out["requested_model"] = wanted
+        return out
+
+    def list_elements(
+        self, limit: int = 100, level: str | None = None, target: Target = "auto"
+    ) -> dict[str, Any]:
+        if not 1 <= int(limit) <= 1000:
+            raise BentleyError("limit must be 1..1000")
+        app, kind, name = self._for_target(target)
+        try:
+            elements: list[dict[str, Any]] = []
+            for element in _collect(app.ActiveModelReference.Elements, 5000):
+                try:
+                    element_id = int(element.ElementId)
+                except Exception:
+                    continue
+                level_name: str | None = None
+                try:
+                    level_name = str(element.Level.Name)
+                except Exception:
+                    pass
+                if level and (level_name or "").lower() != level.lower():
+                    continue
+                entry: dict[str, Any] = {"element_id": element_id}
+                if level_name is not None:
+                    entry["level"] = level_name
+                try:
+                    entry["type"] = int(element.Type)
+                except Exception:
+                    pass
+                elements.append(entry)
+                if len(elements) >= int(limit):
+                    break
+        except Exception as exc:
+            raise BentleyError(f"list_elements failed: {exc}") from exc
+        out = self._info(app, kind, name)
+        out["elements"] = elements
+        out["returned"] = len(elements)
+        out["scanned_limit"] = 5000
+        return out
+
+    def delete_element(
+        self, element_id: int, confirm: bool = False, target: Target = "auto"
+    ) -> dict[str, Any]:
+        if not confirm:
+            raise BentleyError("confirm=true is required for delete_element")
+        if not isinstance(element_id, int) or element_id <= 0:
+            raise BentleyError("element_id must be a positive integer")
+        app, kind, name = self._for_target(target)
+        try:
+            model = app.ActiveModelReference
+            for element in _collect(model.Elements, 5000):
+                try:
+                    current = int(element.ElementId)
+                except Exception:
+                    continue
+                if current != element_id:
+                    continue
+                model.RemoveElement(element)
+                out = self._info(app, kind, name)
+                out["deleted"] = element_id
+                return out
+        except Exception as exc:
+            raise BentleyError(f"delete_element failed: {exc}") from exc
+        raise BentleyError(
+            f"element {element_id} not found in the active model (scan limit 5000)"
+        )
+
+    def create_text(
+        self,
+        origin: Point,
+        text: str,
+        height: float | None = None,
+        target: Target = "auto",
+    ) -> dict[str, Any]:
+        if not text.strip():
+            raise BentleyError("text is empty")
+        if len(text) > 4096:
+            raise BentleyError("text is limited to 4096 characters")
+        if height is not None and not 0.0 < float(height) <= 1e6:
+            raise BentleyError("height must be greater than 0")
+
+        app, kind, name = self._for_target(target)
+        height_applied = height is None
+        try:
+            model = app.ActiveModelReference
+            template = None
+            for holder in (model, app.ActiveDesignFile):
+                try:
+                    candidate = getattr(holder, "ActiveTemplate", None)
+                except Exception:
+                    candidate = None
+                if candidate is not None:
+                    template = candidate
+                    break
+            if template is None:
+                raise BentleyError(
+                    "no active text element template; create one in MicroStation "
+                    "or use create elements via run_python instead"
+                )
+            if height is not None:
+                try:
+                    template.TextHeight = float(height)
+                    height_applied = True
+                except Exception:
+                    pass
+            element = app.CreateTextElement(template, text, _point(origin))
+            if isinstance(element, tuple):
+                element = element[-1]
+            model.AddElement(element)
+        except BentleyError:
+            raise
+        except Exception as exc:
+            raise BentleyError(f"CreateTextElement failed: {exc}") from exc
+        out = self._info(app, kind, name)
+        out["created"] = "text"
+        out["height_applied"] = height_applied
+        return out
+
+    def run_python(
+        self, code: str, confirm: bool = False, target: Target = "auto"
+    ) -> dict[str, Any]:
+        if not confirm:
+            raise BentleyError("confirm=true is required for run_python")
+        if not code.strip():
+            raise BentleyError("code is empty")
+        if len(code) > 20000:
+            raise BentleyError("code is limited to 20000 characters")
+
+        directory = Path(tempfile.gettempdir()) / "bentley_mcp"
+        directory.mkdir(parents=True, exist_ok=True)
+        script = directory / (
+            f"exec_{time.strftime('%Y%m%d_%H%M%S')}_{os.getpid()}_{next(_run_seq)}.py"
+        )
+        script.write_text(code, encoding="utf-8")
+
+        app, kind, name = self._for_target(target)
+        keyin = f'python execute "{script}"'
+        try:
+            app.CadInputQueue.SendKeyin(keyin)
+        except Exception as exc:
+            raise BentleyError(f"SendKeyin failed: {exc}") from exc
+        out = self._info(app, kind, name)
+        out["script"] = str(script)
+        out["keyin"] = keyin
+        out["note"] = (
+            "Queued to MicroStation's Python engine; results appear in its "
+            "Python window, not in this tool result."
+        )
         return out

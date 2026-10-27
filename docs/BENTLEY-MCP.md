@@ -81,8 +81,17 @@ Without the token the endpoint is still loopback-only, but any local process can
 | `save_design` | Save the active design file | Writes the file |
 | `create_line` | Add a line element | `start` and `end` are `[x, y, z]` |
 | `create_polyline` | Add connected line segments | 2–1000 points |
+| `create_text` | Place a text element | Uses the active text template; reports if `height` was applied |
+| `list_models` / `list_levels` | Enumerate models / levels | Read-only |
+| `set_active_model` | Activate a model by name | Case-insensitive |
+| `list_elements` | List element ids, levels, types | `limit` 1–1000, optional `level` filter, scans first 5000 |
+| `delete_element` | Remove one element by id | Destructive; requires `confirm=true` |
 | `run_keyin` | Send one MicroStation key-in | Requires `confirm=true` |
+| `run_python` | Queue MicroStation Python via temp script + `python execute` | Requires `confirm=true`; output goes to the Python window |
 | `fit_view` | Fit and redraw open views | View state only |
+
+Routing rules for choosing between these tools and the Copilot-bundled MCP
+server live in [ROUTING.md](ROUTING.md).
 
 `target` accepts `auto`, `microstation`, or `openbuildings`. `auto` follows the attached app;
 an explicit target refuses a mismatch instead of acting on the other product.
@@ -111,8 +120,10 @@ choose or protect project files.
   key-ins or an OpenBuildings add-in for those workflows.
 * **One owner at a time.** Starting the other product does not give the bridge two independent
   control channels.
-* **No arbitrary code.** There is no `execute_code`-style tool. `run_keyin` is raw application
-  input and can change or delete model content; it requires explicit confirmation.
+* **Gated execution.** `run_keyin` and `run_python` are the escape hatches; both require
+  `confirm=true` and both can change or delete model content. `run_python` writes the code to
+  `%TEMP%\bentley_mcp\` and queues it to MicroStation's Python engine; its output appears in the
+  Python window, not in the tool result.
 * **No tunnel.** HTTP binds to `127.0.0.1` only. Do not expose it through a dev tunnel or reverse
   proxy.
 
@@ -133,6 +144,14 @@ cd adapter
 ```
 
 The unit tests use a fake COM adapter. A live check needs MicroStation or OpenBuildings running
-with a scratch DGN, then call `list_apps`, `get_status`, `create_line`, `save_design`, and
-`fit_view` from the MCP client. `run_keyin` is not part of the smoke test because it can mutate
-the model; its `confirm` gate is unit-tested.
+with a scratch DGN, then:
+
+```powershell
+uv run python tests\bentley_baseline.py          # JSON attach/status probe, exit 0 on success
+pwsh scripts\preflight.ps1                       # gates: COM ProgID, app running, live attach
+pwsh scripts\validate.ps1 -BentleyLive           # unit tests + live COM gate together
+```
+
+For deeper round-trips call `create_line`, `list_elements`, `create_text`, `delete_element`,
+`save_design`, and `fit_view` from the MCP client. `run_keyin` and `run_python` are not part of
+the automated smoke because they can mutate the model; their `confirm` gates are unit-tested.

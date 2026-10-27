@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "bentley": {
+      "type": "http",
+      "url": "http://127.0.0.1:18131/mcp",
+      "headers": { "Authorization": "Bearer <BENTLEY_MCP_TOKEN>" }
+    }
+  }
+}

@@ -17,6 +17,11 @@ Gate 'Gateway venv' ($(if (Test-Path $GatewayPython) { 'VERIFIED' } else { 'FAIL
 $staad = @(Get-Process -Name 'Bentley.Staad' -ErrorAction SilentlyContinue)
 Gate 'STAAD.Pro running' ($(if ($staad) { 'VERIFIED' } else { 'FAILED' })) "$($staad.Count) process(es)"
 
+$progid = Test-Path 'Registry::HKEY_CLASSES_ROOT\MicroStationDGN.Application'
+Gate 'Bentley COM ProgID' ($(if ($progid) { 'VERIFIED' } else { 'FAILED' })) 'HKCR\MicroStationDGN.Application (Bentley bridge dependency)'
+$bentley = @(Get-Process microstation, OpenBuildingsDesigner -ErrorAction SilentlyContinue)
+Gate 'Bentley app running' ($(if ($bentley) { 'VERIFIED' } else { 'UNVERIFIED' })) "$($bentley.Count) process(es); a DGN must be open for tools to attach"
+
 if (-not $SkipLiveMcp -and (Test-Path $GatewayPython)) {
     Push-Location $Adapter
     $j = & $GatewayPython tests\live_baseline.py 2>$null | Out-String
@@ -27,6 +32,16 @@ if (-not $SkipLiveMcp -and (Test-Path $GatewayPython)) {
         $ok = $b.get_status.structured.connected -eq $true
         Gate 'Upstream MCP init/tools/status' ($(if ($ok) { 'VERIFIED' } else { 'FAILED' })) "protocol=$($b.protocol_version) tools=$tools connected=$($b.get_status.structured.connected)"
     } catch { Gate 'Upstream MCP init/tools/status' 'FAILED' 'baseline probe did not return JSON' }
+}
+
+if (-not $SkipLiveMcp -and $bentley -and (Test-Path $GatewayPython)) {
+    Push-Location $Adapter
+    $bj = & $GatewayPython tests\bentley_baseline.py 2>$null | Out-String
+    Pop-Location
+    try {
+        $bb = $bj | ConvertFrom-Json
+        Gate 'Bentley COM attach/status' ($(if ($bb.ok) { 'VERIFIED' } else { 'FAILED' })) "design=$($bb.status.design_file) model=$($bb.status.model)"
+    } catch { Gate 'Bentley COM attach/status' 'FAILED' 'bentley_baseline.py did not return JSON' }
 }
 
 $local = Read-EnvFile (Join-Path $Root '.env.local')

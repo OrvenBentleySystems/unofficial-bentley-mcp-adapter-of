@@ -4,8 +4,8 @@ version = "0.1.0"
 description = "Local MCP adapters: authenticated read-only STAAD gateway and direct MicroStation/OpenBuildings COM bridge."
 requires-python = ">=3.11,<3.14"
 dependencies = [
-    # Upstream Bentley server, pinned to the tag already used by the working CLI integration.
-    "openstaad-mcp @ git+https://github.com/BentleySystems/openstaad-mcp@v1.3.0",
+    # Upstream Bentley server, tracked to the latest release tag (v26 keeps the openstaad_mcp.main entry module).
+    "openstaad-mcp @ git+https://github.com/BentleySystems/openstaad-mcp@v26.0.0.107",
     "fastmcp>=3.2.3,<4",
     "uvicorn>=0.30",
     # Direct COM control for the local MicroStation/OpenBuildings bridge.

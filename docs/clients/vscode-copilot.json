@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "bentley": {
+      "type": "stdio",
+      "command": "C:\\mcp-bridge\\adapter\\.venv\\Scripts\\python.exe",
+      "args": ["-m", "bentley_mcp.server"]
+    }
+  }
+}

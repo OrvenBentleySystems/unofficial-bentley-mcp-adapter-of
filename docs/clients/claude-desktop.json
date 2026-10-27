@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "bentley": {
+      "command": "C:\\mcp-bridge\\adapter\\.venv\\Scripts\\bentley-mcp.exe",
+      "args": []
+    }
+  }
+}

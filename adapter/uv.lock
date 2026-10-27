@@ -808,8 +808,8 @@ wheels = [
 
 [[package]]
 name = "openstaad-mcp"
-version = "1.3.0"
-source = { git = "https://github.com/BentleySystems/openstaad-mcp?rev=v1.3.0#1b12202f2344e9d7a4981d6342840807666aee6d" }
+version = "26.0.0.107"
+source = { git = "https://github.com/BentleySystems/openstaad-mcp?rev=v26.0.0.107#9910fefde17192320e9cf0f504ada02ee93344fa" }
 dependencies = [
     { name = "chardet" },
     { name = "defusedxml" },
@@ -1325,7 +1325,7 @@ dev = [
 requires-dist = [
     { name = "comtypes", marker = "sys_platform == 'win32'", specifier = ">=1.4,<2" },
     { name = "fastmcp", specifier = ">=3.2.3,<4" },
-    { name = "openstaad-mcp", git = "https://github.com/BentleySystems/openstaad-mcp?rev=v1.3.0" },
+    { name = "openstaad-mcp", git = "https://github.com/BentleySystems/openstaad-mcp?rev=v26.0.0.107" },
     { name = "uvicorn", specifier = ">=0.30" },
 ]
 

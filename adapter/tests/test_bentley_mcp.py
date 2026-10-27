@@ -23,6 +23,13 @@ TOOLS = {
     "create_polyline",
     "run_keyin",
     "fit_view",
+    "list_models",
+    "list_levels",
+    "set_active_model",
+    "list_elements",
+    "delete_element",
+    "create_text",
+    "run_python",
 }
 
 
@@ -67,6 +74,46 @@ class FakeCom:
     def fit_view(self, target: str = "auto") -> dict[str, Any]:
         self.calls.append(("fit_view", target))
         return {"views": 8}
+
+    def list_models(self, target: str = "auto") -> dict[str, Any]:
+        self.calls.append(("list_models", target))
+        return {"models": [{"name": "Model"}], "model_count": 1}
+
+    def list_levels(self, target: str = "auto") -> dict[str, Any]:
+        self.calls.append(("list_levels", target))
+        return {"levels": [{"name": "0"}], "level_count": 1}
+
+    def set_active_model(self, name: str, target: str = "auto") -> dict[str, Any]:
+        self.calls.append(("set_active_model", name, target))
+        return {"requested_model": name}
+
+    def list_elements(
+        self, limit: int = 100, level: Any = None, target: str = "auto"
+    ) -> dict[str, Any]:
+        self.calls.append(("list_elements", limit, level, target))
+        return {"elements": [{"element_id": 7}], "returned": 1}
+
+    def delete_element(
+        self, element_id: int, confirm: bool = False, target: str = "auto"
+    ) -> dict[str, Any]:
+        self.calls.append(("delete_element", element_id, confirm, target))
+        return {"deleted": element_id}
+
+    def create_text(
+        self,
+        origin: Any,
+        text: str,
+        height: Any = None,
+        target: str = "auto",
+    ) -> dict[str, Any]:
+        self.calls.append(("create_text", origin, text, height, target))
+        return {"created": "text", "height_applied": True}
+
+    def run_python(
+        self, code: str, confirm: bool = False, target: str = "auto"
+    ) -> dict[str, Any]:
+        self.calls.append(("run_python", code, confirm, target))
+        return {"keyin": "python execute", "script": "C:\\temp\\x.py"}
 
 
 def fake_server() -> tuple[FakeCom, Any]:
@@ -141,12 +188,79 @@ async def test_run_keyin_requires_confirm() -> None:
     assert fake.calls == [("run_keyin", "DELETE ELEMENT", True, "microstation")]
 
 
+async def test_gated_tools_require_confirm() -> None:
+    fake, server = fake_server()
+    async with Client(server) as client:
+        refused_delete = await client.call_tool(
+            "delete_element", {"element_id": 7}, raise_on_error=False
+        )
+        refused_python = await client.call_tool(
+            "run_python", {"code": "print(1)"}, raise_on_error=False
+        )
+        done_delete = await client.call_tool(
+            "delete_element", {"element_id": 7, "confirm": True}
+        )
+        done_python = await client.call_tool(
+            "run_python", {"code": "print(1)", "confirm": True}
+        )
+
+    assert refused_delete.is_error and refused_python.is_error
+    assert done_delete.structured_content["deleted"] == 7
+    assert done_python.structured_content["keyin"] == "python execute"
+    assert fake.calls == [
+        ("delete_element", 7, True, "auto"),
+        ("run_python", "print(1)", True, "auto"),
+    ]
+
+
+async def test_read_and_write_extensions_forward() -> None:
+    fake, server = fake_server()
+    async with Client(server) as client:
+        models = (await client.call_tool("list_models", {})).structured_content
+        levels = (await client.call_tool("list_levels", {})).structured_content
+        elements = (
+            await client.call_tool(
+                "list_elements", {"limit": 50, "level": "Walls"}
+            )
+        ).structured_content
+        await client.call_tool("set_active_model", {"name": "Model 1"})
+        text = (
+            await client.call_tool(
+                "create_text", {"origin": [1, 2, 3], "text": "hello", "height": 0.5}
+            )
+        ).structured_content
+
+    assert models["model_count"] == 1
+    assert levels["levels"][0]["name"] == "0"
+    assert elements["returned"] == 1
+    assert text["created"] == "text"
+    assert fake.calls == [
+        ("list_models", "auto"),
+        ("list_levels", "auto"),
+        ("list_elements", 50, "Walls", "auto"),
+        ("set_active_model", "Model 1", "auto"),
+        ("create_text", (1, 2, 3), "hello", 0.5, "auto"),
+    ]
+
+
 def test_com_validation_before_attach() -> None:
     com = BentleyCom()
     with pytest.raises(BentleyError, match="absolute"):
         com.open_design("relative.dgn")
     with pytest.raises(BentleyError, match="\\.dgn"):
         com.open_design("C:\\scratch\\not-a-design.txt")
+    with pytest.raises(BentleyError, match="model name"):
+        com.set_active_model("   ")
+    with pytest.raises(BentleyError, match="confirm=true"):
+        com.delete_element(7)
+    with pytest.raises(BentleyError, match="positive integer"):
+        com.delete_element(0, confirm=True)
+    with pytest.raises(BentleyError, match="confirm=true"):
+        com.run_python("print(1)")
+    with pytest.raises(BentleyError, match="code is empty"):
+        com.run_python("   ", confirm=True)
+    with pytest.raises(BentleyError, match="limit must be"):
+        com.list_elements(limit=0)
 
 
 def test_product_name_classification() -> None:

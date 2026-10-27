@@ -4,9 +4,10 @@ Default transport is stdio, for an agent to launch this process directly.
 ``--http`` serves streamable HTTP on 127.0.0.1 only; set ``BENTLEY_MCP_TOKEN``
 to require ``Authorization: Bearer <token>``.
 
-The tool surface is intentionally small and typed. There is no arbitrary code
-execution. ``run_keyin`` sends a raw MicroStation key-in and requires
-``confirm=true``.
+The typed tools cover the DGN object model through COM. Arbitrary execution
+exists only behind ``run_keyin`` and ``run_python``, both requiring
+``confirm=true``. No Bentley Copilot dependency: any MCP client can drive the
+design directly. See docs/ROUTING.md for the COM-vs-MCP routing policy.
 """
 
 from __future__ import annotations
@@ -39,7 +40,9 @@ _INSTRUCTIONS = (
     "automation object: MicroStation or OpenBuildings Designer, one at a time. "
     "A design file must already be open. OpenBuildings must be running with a "
     "DGN from its active workset. Coordinates are [x, y, z] in the active "
-    "model's working units. Use list_apps or get_status first."
+    "model's working units. Use list_apps or get_status first. Prefer the typed "
+    "tools; use run_python or run_keyin (both gated on confirm=true) for "
+    "anything the typed surface does not cover."
 )
 
 
@@ -123,6 +126,78 @@ def build_server(com: BentleyCom | None = None, token: str | None = None) -> Fas
     async def fit_view(target: Target = "auto") -> dict[str, Any]:
         """Fit and redraw the open views in the active design file."""
         return _call(app.fit_view, target)
+
+    @mcp.tool(annotations=_READ)
+    async def list_models(target: Target = "auto") -> dict[str, Any]:
+        """List models in the active design file (name, 3D, read-only flags)."""
+        return _call(app.list_models, target)
+
+    @mcp.tool(annotations=_READ)
+    async def list_levels(target: Target = "auto") -> dict[str, Any]:
+        """List levels in the active design file, with display state when readable."""
+        return _call(app.list_levels, target)
+
+    @mcp.tool(annotations=_WRITE)
+    async def set_active_model(name: str, target: Target = "auto") -> dict[str, Any]:
+        """Activate the named model (case-insensitive) in the active design file."""
+        return _call(app.set_active_model, name, target)
+
+    @mcp.tool(annotations=_READ)
+    async def list_elements(
+        limit: int = 100, level: str | None = None, target: Target = "auto"
+    ) -> dict[str, Any]:
+        """List elements in the active model: id, level, type.
+
+        limit: 1..1000 returned. Scans at most the first 5000 elements, so
+        filtered results on large models may be partial; check scanned_limit.
+        """
+        return _call(app.list_elements, limit, level, target)
+
+    @mcp.tool(annotations=_RAW)
+    async def delete_element(
+        element_id: Annotated[int, Field(gt=0)],
+        confirm: bool = False,
+        target: Target = "auto",
+    ) -> dict[str, Any]:
+        """Remove one element (by element_id from list_elements) from the active model.
+
+        Destructive: requires confirm=true. Searches only the first 5000
+        elements of the active model.
+        """
+        if not confirm:
+            raise ToolError("confirm=true is required for delete_element")
+        return _call(app.delete_element, element_id, True, target)
+
+    @mcp.tool(annotations=_WRITE)
+    async def create_text(
+        origin: Point,
+        text: Annotated[str, Field(min_length=1, max_length=4096)],
+        height: float | None = None,
+        target: Target = "auto",
+    ) -> dict[str, Any]:
+        """Place a text element at [x, y, z] using the active text template.
+
+        height: optional text height in working units; the result reports
+        whether the template accepted it.
+        """
+        return _call(app.create_text, origin, text, height, target)
+
+    @mcp.tool(annotations=_RAW)
+    async def run_python(
+        code: Annotated[str, Field(min_length=1, max_length=20000)],
+        confirm: bool = False,
+        target: Target = "auto",
+    ) -> dict[str, Any]:
+        """Run MicroStation Python code by writing it to a temp script and
+        queueing the 'python execute' key-in. Requires confirm=true.
+
+        Output appears in MicroStation's Python window, not in the tool
+        result. Prefer typed tools; this is the escape hatch for anything
+        they do not cover.
+        """
+        if not confirm:
+            raise ToolError("confirm=true is required for run_python")
+        return _call(app.run_python, code, True, target)
 
     return mcp
 
