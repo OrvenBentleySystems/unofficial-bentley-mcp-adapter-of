@@ -42,3 +42,11 @@ undocumented; the installed CLI's own help documents it.
 8. **Persistent named tunnel** so the URL in the manifest/auth config is stable across restarts.
 9. **Not switched** to `none` auth or a non-Entra IdP after the tenant blocked app registration
    (see RUNBOOK blocker) — that would bypass the tenant's identity governance.
+
+## Amendments (2026-10-27)
+
+| Change | Why |
+|---|---|
+| openstaad-mcp pin v1.3.0 → v26.0.0.107 | upstream keeps the `openstaad_mcp.main` entry module and the same `fastmcp>=3.2.3,<4` range; gateway code unchanged; 32/32 tests pass |
+| COM-first routing ([ROUTING.md](ROUTING.md)) | live verification on MicroStation 26.00.02.39 showed direct COM covers agent authoring needs without Copilot or its Feature Token (expires 2027-05-01); Copilot MCP demoted to documented gap-filler |
+| Element enumeration via `DesignFile.GetElementByID(DLong)` id-scan; `ModelReference.Activate()`; `CreateTextElement1(None, text, origin)` taking the element from the last list item | the v10.1 typelib exposes no `ModelReference.Elements`, no `SetModelActive`, and no reachable `TextElementTemplate` (live probes, 2026-10-27) |
