@@ -1309,6 +1309,7 @@ name = "staad-mcp-gateway"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "comtypes", marker = "sys_platform == 'win32'" },
     { name = "fastmcp" },
     { name = "openstaad-mcp" },
     { name = "uvicorn" },
@@ -1322,6 +1323,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "comtypes", marker = "sys_platform == 'win32'", specifier = ">=1.4,<2" },
     { name = "fastmcp", specifier = ">=3.2.3,<4" },
     { name = "openstaad-mcp", git = "https://github.com/BentleySystems/openstaad-mcp?rev=v1.3.0" },
     { name = "uvicorn", specifier = ">=0.30" },
