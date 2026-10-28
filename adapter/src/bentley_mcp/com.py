@@ -11,12 +11,14 @@ unit-tested without Bentley installed.
 
 from __future__ import annotations
 
-import itertools
+import json
 import logging
-import os
+import re
 import tempfile
 import time
+import uuid
 from pathlib import Path
+from string import Template
 from typing import Any, Literal
 
 log = logging.getLogger("bentley_mcp.com")
@@ -87,7 +89,42 @@ def _xyz(point: Any) -> dict[str, float]:
     return {"x": float(point.X), "y": float(point.Y), "z": float(point.Z)}
 
 
-_run_seq = itertools.count(1)
+_WRAPPER_SRC = Template(
+    """import json, os, traceback
+
+_RUN_ID = "$run_id"
+_USER_FILE = $user_file_repr
+_RESULT_DIR = $result_dir_repr
+
+# NOTE: never replace sys.stdout here — swapping the stream inside MicroStation's
+# embedded engine deadlocks the python-execute key-in queue (proved live 2026-10-28).
+_captured = []
+
+def _capture_print(*args, **kwargs):
+    sep = kwargs.get("sep", " ")
+    end = kwargs.get("end", "\\n")
+    _captured.append(sep.join(str(a) for a in args) + end)
+
+_result = {"run_id": _RUN_ID, "status": "ok", "stdout": "", "return": None, "exception": None}
+try:
+    with open(_USER_FILE, "r", encoding="utf-8") as _f:
+        _code = _f.read()
+    _ns = {"__name__": "__bentley_mcp_run__", "__result__": None, "print": _capture_print}
+    exec(compile(_code, _USER_FILE, "exec"), _ns)
+    _result["return"] = _ns.get("__result__")
+except Exception:
+    _result["status"] = "error"
+    _result["exception"] = traceback.format_exc()
+finally:
+    _result["stdout"] = "".join(_captured)[:200000]
+    try:
+        os.makedirs(_RESULT_DIR, exist_ok=True)
+        with open(os.path.join(_RESULT_DIR, _RUN_ID + ".json"), "w", encoding="utf-8") as _f:
+            json.dump(_result, _f, default=str)
+    except Exception:
+        pass
+"""
+)
 
 
 def _collect(collection: Any, limit: int) -> list[Any]:
@@ -115,8 +152,26 @@ def _collect(collection: Any, limit: int) -> list[Any]:
 class BentleyCom:
     """Thin, synchronous wrapper around the Bentley automation object."""
 
+    # COM busy codes seen while the embedded Python engine is mid-script:
+    # call rejected / pending call / server threw. Retrying clears them (proved live).
+    _TRANSIENT_COM = (-2147418111, -2147418110, -2147417851)
+
     def __init__(self, progid: str = PROGID) -> None:
         self._progid = progid
+
+    @staticmethod
+    def _send_keyin(app: Any, keyin: str) -> None:
+        last: Exception | None = None
+        for attempt in range(6):
+            try:
+                app.CadInputQueue.SendKeyin(keyin)
+                return
+            except Exception as exc:
+                last = exc
+                if getattr(exc, "hresult", None) not in BentleyCom._TRANSIENT_COM:
+                    break
+                time.sleep(1.0 + attempt)
+        raise BentleyError(f"SendKeyin failed: {last}")
 
     def _active(self) -> Any:
         try:
@@ -269,10 +324,7 @@ class BentleyCom:
             raise BentleyError("key-in command must be one line of at most 1024 characters")
 
         app, kind, name = self._for_target(target)
-        try:
-            app.CadInputQueue.SendKeyin(command)
-        except Exception as exc:
-            raise BentleyError(f"SendKeyin failed: {exc}") from exc
+        self._send_keyin(app, command)
         out = self._info(app, kind, name)
         out["keyin"] = command
         return out
@@ -514,7 +566,11 @@ class BentleyCom:
         return out
 
     def run_python(
-        self, code: str, confirm: bool = False, target: Target = "auto"
+        self,
+        code: str,
+        confirm: bool = False,
+        wait_s: int = 30,
+        target: Target = "auto",
     ) -> dict[str, Any]:
         if not confirm:
             raise BentleyError("confirm=true is required for run_python")
@@ -522,25 +578,77 @@ class BentleyCom:
             raise BentleyError("code is empty")
         if len(code) > 20000:
             raise BentleyError("code is limited to 20000 characters")
+        wait_s = int(wait_s)
+        if not 0 <= wait_s <= 120:
+            raise BentleyError("wait_s must be 0..120 (0 = queue only)")
 
+        run_id = uuid.uuid4().hex
         directory = Path(tempfile.gettempdir()) / "bentley_mcp"
+        results = directory / "results"
         directory.mkdir(parents=True, exist_ok=True)
-        script = directory / (
-            f"exec_{time.strftime('%Y%m%d_%H%M%S')}_{os.getpid()}_{next(_run_seq)}.py"
+        user_file = directory / f"exec_{run_id}.py"
+        user_file.write_text(code, encoding="utf-8")
+        wrapper_file = directory / f"wrap_{run_id}.py"
+        wrapper_file.write_text(
+            _WRAPPER_SRC.substitute(
+                run_id=run_id,
+                user_file_repr=repr(str(user_file)),
+                result_dir_repr=repr(str(results)),
+            ),
+            encoding="utf-8",
         )
-        script.write_text(code, encoding="utf-8")
 
         app, kind, name = self._for_target(target)
-        keyin = f'python execute "{script}"'
-        try:
-            app.CadInputQueue.SendKeyin(keyin)
-        except Exception as exc:
-            raise BentleyError(f"SendKeyin failed: {exc}") from exc
+        keyin = f'python execute "{wrapper_file}"'
+        self._send_keyin(app, keyin)
         out = self._info(app, kind, name)
-        out["script"] = str(script)
+        out["run_id"] = run_id
         out["keyin"] = keyin
+        if wait_s == 0:
+            out["note"] = "queued; fetch later with python_result(run_id)"
+            return out
+
+        result_file = results / f"{run_id}.json"
+        deadline = time.monotonic() + wait_s
+        while time.monotonic() < deadline:
+            if result_file.exists():
+                try:
+                    payload = json.loads(result_file.read_text(encoding="utf-8"))
+                except (json.JSONDecodeError, OSError):
+                    time.sleep(0.3)
+                    continue
+                try:
+                    result_file.unlink(missing_ok=True)
+                except OSError:
+                    pass
+                out["result"] = payload
+                return out
+            time.sleep(0.4)
+        out["result"] = None
         out["note"] = (
-            "Queued to MicroStation's Python engine; results appear in its "
-            "Python window, not in this tool result."
+            f"no result within {wait_s}s. MicroStation 26.00.02.39 runs only the FIRST "
+            "python execute per app session (verified live 2026-10-28; DATAQUEUE, "
+            "SendDataPoint, RESET and foregrounding do not re-arm the queue): "
+            "batch all work into one script, or restart MicroStation. "
+            "Fetch late results with python_result(run_id)."
         )
         return out
+
+    def python_result(self, run_id: str) -> dict[str, Any]:
+        """Fetch a queued run_python result by its run_id (consumes the file)."""
+        if not re.fullmatch(r"[0-9a-f]{32}", run_id or ""):
+            raise BentleyError("run_id must be the 32-hex id returned by run_python")
+        result_file = (
+            Path(tempfile.gettempdir()) / "bentley_mcp" / "results" / f"{run_id}.json"
+        )
+        if not result_file.exists():
+            return {"run_id": run_id, "ready": False}
+        try:
+            payload = json.loads(result_file.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError) as exc:
+            raise BentleyError(f"result file unreadable: {exc}") from exc
+        try:
+            result_file.unlink(missing_ok=True)
+        except OSError:
+            pass
+        return {"run_id": run_id, "ready": True, "result": payload}

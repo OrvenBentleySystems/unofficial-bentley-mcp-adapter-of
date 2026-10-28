@@ -41,8 +41,9 @@ _INSTRUCTIONS = (
     "A design file must already be open. OpenBuildings must be running with a "
     "DGN from its active workset. Coordinates are [x, y, z] in the active "
     "model's working units. Use list_apps or get_status first. Prefer the typed "
-    "tools; use run_python or run_keyin (both gated on confirm=true) for "
-    "anything the typed surface does not cover."
+    "tools; for anything the typed surface does not cover use run_python "
+    "(returns captured stdout, exceptions and __result__) or run_keyin — both "
+    "gated on confirm=true."
 )
 
 
@@ -187,18 +188,32 @@ def build_server(com: BentleyCom | None = None, token: str | None = None) -> Fas
     def run_python(
         code: Annotated[str, Field(min_length=1, max_length=20000)],
         confirm: bool = False,
+        wait_s: Annotated[int, Field(ge=0, le=120)] = 30,
         target: Target = "auto",
     ) -> dict[str, Any]:
-        """Run MicroStation Python code by writing it to a temp script and
-        queueing the 'python execute' key-in. Requires confirm=true.
+        """Run MicroStation Python and capture the result. Requires confirm=true.
 
-        Output appears in MicroStation's Python window, not in the tool
-        result. Prefer typed tools; this is the escape hatch for anything
-        they do not cover.
+        The code runs in MicroStation's embedded Python (3.12). Captured back:
+        stdout, exceptions, and the value assigned to `__result__` (set it for
+        a typed return). wait_s polls for completion (0 = queue only; fetch
+        later with python_result).
+
+        Known limitation (26.00.02.39, verified live): only the FIRST python
+        execute per app session runs. Put an entire job in one call; for more,
+        restart MicroStation.
         """
         if not confirm:
             raise ToolError("confirm=true is required for run_python")
-        return _call(app.run_python, code, True, target)
+        return _call(app.run_python, code, True, wait_s, target)
+
+    @mcp.tool(annotations=_READ)
+    def python_result(run_id: str) -> dict[str, Any]:
+        """Fetch a queued run_python result by run_id (ready=false if still pending).
+
+        Consumes the stored result; a second call for the same id returns
+        ready=false.
+        """
+        return _call(app.python_result, run_id)
 
     return mcp
 

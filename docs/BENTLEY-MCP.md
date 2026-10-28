@@ -95,7 +95,8 @@ Without the token the endpoint is still loopback-only, but any local process can
 | `list_elements` | List active model's graphical elements: id, level, type | `limit` 1–1000, optional `level` filter; `total_in_model`/`truncated` report the rest |
 | `delete_element` | Remove one element by id | Destructive; requires `confirm=true` |
 | `run_keyin` | Send one MicroStation key-in | Requires `confirm=true` |
-| `run_python` | Queue MicroStation Python via temp script + `python execute` | Requires `confirm=true`; output goes to the Python window |
+| `run_python` | Run code in MicroStation's embedded Python 3.12; captures stdout, exceptions and `__result__` | Requires `confirm=true`. **One script per app session** (26.00.02.39, verified 2026-10-28) — batch the whole job into one call |
+| `python_result` | Fetch a queued `run_python` result by `run_id` | Consumes the stored result |
 | `fit_view` | Fit and redraw open views | View state only |
 
 Routing rules for choosing between these tools and the Copilot-bundled MCP
@@ -130,8 +131,11 @@ choose or protect project files.
   control channels.
 * **Gated execution.** `run_keyin` and `run_python` are the escape hatches; both require
   `confirm=true` and both can change or delete model content. `run_python` writes the code to
-  `%TEMP%\bentley_mcp\` and queues it to MicroStation's Python engine; its output appears in the
-  Python window, not in the tool result.
+  `%TEMP%\bentley_mcp\` and queues it to MicroStation's embedded Python 3.12 engine (in-process,
+  `microstation.exe`); results come back via a JSON sidecar. **Hard limitation:** this build runs
+  only the *first* `python execute` per app session — the queue never re-arms (tested: script
+  content, inline/post `DATAQUEUE;`, `SendDataPoint`, `RESET`, foregrounding; 10+ sessions).
+  Batch entire jobs into one `run_python` call; restart MicroStation for the next one.
 * **No tunnel.** HTTP binds to `127.0.0.1` only. Do not expose it through a dev tunnel or reverse
   proxy.
 * **No undo.** COM exposes no undo or dirty flag anywhere. Snapshot with `save_design` (or a file

@@ -37,7 +37,7 @@ Ask the agent: *list the models, draw a line from [0,0,0] to [10,0,0], add text,
 Other clients: [docs/clients/](docs/clients). HTTP mode: `pwsh scripts\start-bentley.ps1`
 (stop: `stop-bentley.ps1`).
 
-## Tools (15)
+## Tools (16)
 
 | Group | Tools |
 |---|---|
@@ -46,7 +46,7 @@ Other clients: [docs/clients/](docs/clients). HTTP mode: `pwsh scripts\start-ben
 | Structure | `list_models` `list_levels` `set_active_model` |
 | Geometry | `create_line` `create_polyline` `create_text` |
 | Elements | `list_elements` `delete_element` † |
-| Escape hatches | `run_keyin` † `run_python` † |
+| Escape hatches | `run_keyin` † `run_python` † `python_result` |
 | Views | `fit_view` |
 
 † require `confirm=true`. Full reference: [docs/BENTLEY-MCP.md](docs/BENTLEY-MCP.md) ·
@@ -66,7 +66,9 @@ MCP server genuinely adds capability, mount it alongside per [docs/ROUTING.md](d
 - Unit tests: `uv run pytest -q` (32 pass) · live probe: `uv run python tests\bentley_baseline.py`
 - Gotchas: one Bentley instance at a time (shared COM ProgID; a second is invisible to COM);
   MicroStation must be running with a DGN open — start it yourself, COM auto-launch would cold-start
-  OpenBuildings; non-workset files raise a modal WorkSet prompt (and can open Read-Only) until dismissed
+  OpenBuildings; non-workset files raise a modal WorkSet prompt (and can open Read-Only) until dismissed;
+  MicroStation's embedded Python runs only the **first** `python execute` per app session
+  (26.00.02.39) — batch whole jobs into one `run_python` call
 
 ## Repository layout
 

@@ -30,6 +30,7 @@ TOOLS = {
     "delete_element",
     "create_text",
     "run_python",
+    "python_result",
 }
 
 
@@ -115,10 +116,18 @@ class FakeCom:
         return {"created": "text", "height_applied": True}
 
     def run_python(
-        self, code: str, confirm: bool = False, target: str = "auto"
+        self,
+        code: str,
+        confirm: bool = False,
+        wait_s: int = 30,
+        target: str = "auto",
     ) -> dict[str, Any]:
-        self.calls.append(("run_python", code, confirm, target))
-        return {"keyin": "python execute", "script": "C:\\temp\\x.py"}
+        self.calls.append(("run_python", code, confirm, wait_s, target))
+        return {"keyin": "python execute", "run_id": "0" * 32, "result": None}
+
+    def python_result(self, run_id: str) -> dict[str, Any]:
+        self.calls.append(("python_result", run_id))
+        return {"run_id": run_id, "ready": True, "result": {"status": "ok"}}
 
 
 def fake_server() -> tuple[FakeCom, Any]:
@@ -208,13 +217,18 @@ async def test_gated_tools_require_confirm() -> None:
         done_python = await client.call_tool(
             "run_python", {"code": "print(1)", "confirm": True}
         )
+        fetched = (
+            await client.call_tool("python_result", {"run_id": "0" * 32})
+        ).structured_content
 
     assert refused_delete.is_error and refused_python.is_error
     assert done_delete.structured_content["deleted"] == 7
     assert done_python.structured_content["keyin"] == "python execute"
+    assert fetched["ready"] is True
     assert fake.calls == [
         ("delete_element", 7, True, "auto"),
-        ("run_python", "print(1)", True, "auto"),
+        ("run_python", "print(1)", True, 30, "auto"),
+        ("python_result", "0" * 32),
     ]
 
 
@@ -264,6 +278,12 @@ def test_com_validation_before_attach() -> None:
         com.run_python("print(1)")
     with pytest.raises(BentleyError, match="code is empty"):
         com.run_python("   ", confirm=True)
+    with pytest.raises(BentleyError, match="wait_s"):
+        com.run_python("x", confirm=True, wait_s=999)
+    with pytest.raises(BentleyError, match="run_id"):
+        com.python_result("../../Windows/system32")
+    with pytest.raises(BentleyError, match="run_id"):
+        com.python_result("nope")
     with pytest.raises(BentleyError, match="limit must be"):
         com.list_elements(limit=0)
 
