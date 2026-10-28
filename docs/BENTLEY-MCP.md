@@ -13,9 +13,13 @@ MCP client ─► stdio (default)  or  http://127.0.0.1:18131/mcp
 OpenBuildings Designer 2024 (24.00.03.14). Full 15-tool pass on 2026-10-27 against a scratch DGN:
 attach, status, open, models, levels, model activation, line, polyline, text, element query,
 element delete (confirm-gated), python execute, save, fit, stdio, and loopback HTTP with bearer
-auth. Live COM facts learned: `ModelReference` has no `Elements` collection (enumerate via
-`DesignFile.GetElementByID` with `DLong{Low,High}`), models activate with `ModelReference.Activate()`,
-and `CreateTextElement1(None, text, origin)` returns `[Point3d, Matrix3d, TextElement]`.
+auth. Re-verified 2026-10-28 after the element-tool rewrite (unique ids, exact delete targeting).
+Live COM facts: `ModelReference` has no `Elements` collection — enumerate
+`ModelReference.GraphicalElementCache` with `GetElement(1..Count)` and read `Element.ID64`
+(do **not** id-scan: `GetElementByID64` resolves missing ids to a *different* element);
+models activate with `ModelReference.Activate()`; `CreateTextElement1(None, text, origin)`
+returns `[Point3d, Matrix3d, TextElement]` (element is last); `cache.Count` keeps deleted
+elements until the model is rewritten — filter with `Element.IsDeleted`.
 
 ## Prerequisites
 
@@ -88,7 +92,7 @@ Without the token the endpoint is still loopback-only, but any local process can
 | `create_text` | Place a text element | Uses the active text template; reports if `height` was applied |
 | `list_models` / `list_levels` | Enumerate models / levels | Read-only |
 | `set_active_model` | Activate a model by name | Case-insensitive |
-| `list_elements` | List element ids, levels, types | `limit` 1–1000, optional `level` filter; scans ids 1..min(largest, 5000) |
+| `list_elements` | List active model's graphical elements: id, level, type | `limit` 1–1000, optional `level` filter; `total_in_model`/`truncated` report the rest |
 | `delete_element` | Remove one element by id | Destructive; requires `confirm=true` |
 | `run_keyin` | Send one MicroStation key-in | Requires `confirm=true` |
 | `run_python` | Queue MicroStation Python via temp script + `python execute` | Requires `confirm=true`; output goes to the Python window |
@@ -130,6 +134,16 @@ choose or protect project files.
   Python window, not in the tool result.
 * **No tunnel.** HTTP binds to `127.0.0.1` only. Do not expose it through a dev tunnel or reverse
   proxy.
+* **No undo.** COM exposes no undo or dirty flag anywhere. Snapshot with `save_design` (or a file
+  copy) before bulk or destructive agent edits.
+* **COM auto-launch starts the wrong product.** The shared CLSID's `LocalServer32` points at
+  OpenBuildingsDesigner.exe on this machine. Never let COM cold-start the app — start MicroStation
+  yourself, then attach.
+* **Shadow instances.** A second MicroStation process registers its automation object but is not
+  attachable (ROT entries carry no PID); it stays invisible to the bridge. One instance per session.
+* **Typelib provenance.** The pinned GUID resolves through OpenBuildings' exe here; the generated
+  interfaces matched MicroStation 2026 live in every probe. Identical object model, but the source
+  is shared — noted, not changed.
 
 ## Troubleshooting
 
@@ -139,6 +153,7 @@ choose or protect project files.
 | `Active Bentley app is X; requested Y` | Close the other product, or call with `target: "auto"`. |
 | `401 Unauthorized` over HTTP | Send `Authorization: Bearer` with the same `BENTLEY_MCP_TOKEN` the server has. |
 | `port ... already listening` | Choose another port: `pwsh scripts\start-bentley.ps1 -Port 18132`. |
+| Title shows `[... Read-Only]` or "File is read-only" | A fresh non-workset DGN copy opened degraded: dismiss the "No WorkSet Alert" once, then `open_design` with `read_only: false`. |
 
 ## Tests
 

@@ -91,7 +91,12 @@ class FakeCom:
         self, limit: int = 100, level: Any = None, target: str = "auto"
     ) -> dict[str, Any]:
         self.calls.append(("list_elements", limit, level, target))
-        return {"elements": [{"element_id": 7}], "returned": 1}
+        return {
+            "elements": [{"element_id": 7}],
+            "returned": 1,
+            "total_in_model": 1,
+            "truncated": False,
+        }
 
     def delete_element(
         self, element_id: int, confirm: bool = False, target: str = "auto"

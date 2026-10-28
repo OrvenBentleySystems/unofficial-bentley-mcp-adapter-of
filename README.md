@@ -64,8 +64,9 @@ MCP server genuinely adds capability, mount it alongside per [docs/ROUTING.md](d
 - MicroStation 2026 (26.00.02.39): all 15 tools, live smoke 2026-10-27
 - OpenBuildings Designer 2024 (24.00.03.14): DGN element scope only (no parametric objects)
 - Unit tests: `uv run pytest -q` (32 pass) · live probe: `uv run python tests\bentley_baseline.py`
-- Gotchas: one Bentley instance at a time (shared COM ProgID); MicroStation must be running with a
-  DGN open; non-workset files raise a modal WorkSet prompt that blocks COM until dismissed
+- Gotchas: one Bentley instance at a time (shared COM ProgID; a second is invisible to COM);
+  MicroStation must be running with a DGN open — start it yourself, COM auto-launch would cold-start
+  OpenBuildings; non-workset files raise a modal WorkSet prompt (and can open Read-Only) until dismissed
 
 ## Repository layout
 

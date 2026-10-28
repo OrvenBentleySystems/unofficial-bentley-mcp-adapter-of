@@ -371,23 +371,22 @@ class BentleyCom:
         return out
 
     @staticmethod
-    def _dlong(value: int) -> Any:
-        dlong = _ms().DLong()
-        dlong.Low = value & 0xFFFFFFFF
-        dlong.High = (value >> 32) & 0xFFFFFFFF
-        return dlong
-
-    @staticmethod
-    def _id_of(dlong: Any) -> int:
+    def _id_of(element: Any) -> int | None:
         try:
+            return int(element.ID64)
+        except Exception:
+            pass
+        try:
+            dlong = element.ID64
             return (int(dlong.High) << 32) | int(dlong.Low)
         except Exception:
-            return int(dlong.Low) & 0xFFFFFFFF
+            return None
 
-    def _element_by_id(self, app: Any, element_id: int) -> Any:
-        import ctypes
-
-        return app.ActiveDesignFile.GetElementByID(ctypes.byref(self._dlong(element_id)))
+    def _graphical_cache(self, app: Any) -> Any:
+        try:
+            return app.ActiveModelReference.GraphicalElementCache
+        except Exception as exc:
+            raise BentleyError(f"GraphicalElementCache unavailable: {exc}") from exc
 
     def list_elements(
         self, limit: int = 100, level: str | None = None, target: Target = "auto"
@@ -395,22 +394,29 @@ class BentleyCom:
         if not 1 <= int(limit) <= 1000:
             raise BentleyError("limit must be 1..1000")
         app, kind, name = self._for_target(target)
+        cache = self._graphical_cache(app)
         try:
-            largest = self._id_of(app.ActiveDesignFile.GetLargestElementID())
+            total = int(cache.Count)
         except Exception as exc:
-            raise BentleyError(f"GetLargestElementID failed: {exc}") from exc
-        scan_to = min(int(largest), 5000)
+            raise BentleyError(f"cache Count failed: {exc}") from exc
         elements: list[dict[str, Any]] = []
-        for candidate in range(1, scan_to + 1):
-            if len(elements) >= int(limit):
-                break
+        index = 0
+        while len(elements) < int(limit) and index < total:
+            index += 1
             try:
-                element = self._element_by_id(app, candidate)
+                element = cache.GetElement(index)
             except Exception:
-                continue  # id gaps: element not found
+                continue
             if element is None:
                 continue
-            entry: dict[str, Any] = {"element_id": candidate}
+            try:
+                if bool(element.IsDeleted):
+                    continue
+            except Exception:
+                pass
+            element_id = self._id_of(element)
+            if element_id is None:
+                continue
             level_name: str | None = None
             try:
                 level_name = str(element.Level.Name)
@@ -418,6 +424,7 @@ class BentleyCom:
                 pass
             if level and (level_name or "").lower() != level.lower():
                 continue
+            entry: dict[str, Any] = {"element_id": element_id}
             if level_name is not None:
                 entry["level"] = level_name
             try:
@@ -428,8 +435,8 @@ class BentleyCom:
         out = self._info(app, kind, name)
         out["elements"] = elements
         out["returned"] = len(elements)
-        out["scanned_to"] = scan_to
-        out["largest_element_id"] = int(largest)
+        out["total_in_model"] = total
+        out["truncated"] = len(elements) >= int(limit) and index < total
         return out
 
     def delete_element(
@@ -440,21 +447,34 @@ class BentleyCom:
         if not isinstance(element_id, int) or element_id <= 0:
             raise BentleyError("element_id must be a positive integer")
         app, kind, name = self._for_target(target)
+        cache = self._graphical_cache(app)
         try:
-            element = self._element_by_id(app, element_id)
+            total = int(cache.Count)
+            model = app.ActiveModelReference
+            for index in range(1, total + 1):
+                try:
+                    element = cache.GetElement(index)
+                except Exception:
+                    continue
+                if element is None:
+                    continue
+                try:
+                    if bool(element.IsDeleted):
+                        continue
+                except Exception:
+                    pass
+                if self._id_of(element) != element_id:
+                    continue
+                model.RemoveElement(element)
+                out = self._info(app, kind, name)
+                out["deleted"] = element_id
+                return out
         except Exception as exc:
-            raise BentleyError(
-                f"element {element_id} not found in the active design: {exc}"
-            ) from exc
-        if element is None:
-            raise BentleyError(f"element {element_id} not found in the active design")
-        try:
-            app.ActiveModelReference.RemoveElement(element)
-        except Exception as exc:
-            raise BentleyError(f"RemoveElement failed: {exc}") from exc
-        out = self._info(app, kind, name)
-        out["deleted"] = element_id
-        return out
+            raise BentleyError(f"delete_element failed: {exc}") from exc
+        raise BentleyError(
+            f"element {element_id} not found in the active model's graphical cache; "
+            "call list_elements first (ids are per-model)"
+        )
 
     def create_text(
         self,

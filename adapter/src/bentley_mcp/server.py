@@ -64,12 +64,12 @@ def build_server(com: BentleyCom | None = None, token: str | None = None) -> Fas
     mcp = FastMCP("Bentley", instructions=_INSTRUCTIONS, auth=auth)
 
     @mcp.tool(annotations=_READ)
-    async def list_apps() -> dict[str, Any]:
+    def list_apps() -> dict[str, Any]:
         """List the Bentley application currently attached, or an empty list."""
         return _call(app.list_apps)
 
     @mcp.tool(annotations=_READ)
-    async def get_status(target: Target = "auto") -> dict[str, Any]:
+    def get_status(target: Target = "auto") -> dict[str, Any]:
         """Return the attached app, active design file, model, and extents.
 
         target: auto follows the attached app; microstation or openbuildings
@@ -78,26 +78,26 @@ def build_server(com: BentleyCom | None = None, token: str | None = None) -> Fas
         return _call(app.get_status, target)
 
     @mcp.tool(annotations=_WRITE)
-    async def open_design(
+    def open_design(
         path: str, target: Target = "auto", read_only: bool = False
     ) -> dict[str, Any]:
         """Open an absolute .dgn path in the attached application."""
         return _call(app.open_design, path, target, read_only)
 
     @mcp.tool(annotations=_WRITE)
-    async def save_design(target: Target = "auto") -> dict[str, Any]:
+    def save_design(target: Target = "auto") -> dict[str, Any]:
         """Save the active design file."""
         return _call(app.save_design, target)
 
     @mcp.tool(annotations=_WRITE)
-    async def create_line(
+    def create_line(
         start: Point, end: Point, target: Target = "auto"
     ) -> dict[str, Any]:
         """Add a line element to the active model. Points are [x, y, z]."""
         return _call(app.create_line, start, end, target)
 
     @mcp.tool(annotations=_WRITE)
-    async def create_polyline(
+    def create_polyline(
         points: Annotated[list[Point], Field(min_length=2, max_length=1000)],
         target: Target = "auto",
     ) -> dict[str, Any]:
@@ -108,7 +108,7 @@ def build_server(com: BentleyCom | None = None, token: str | None = None) -> Fas
         return _call(app.create_polyline, points, target)
 
     @mcp.tool(annotations=_RAW)
-    async def run_keyin(
+    def run_keyin(
         command: Annotated[str, Field(min_length=1, max_length=1024)],
         confirm: bool = False,
         target: Target = "auto",
@@ -123,53 +123,54 @@ def build_server(com: BentleyCom | None = None, token: str | None = None) -> Fas
         return _call(app.run_keyin, command, True, target)
 
     @mcp.tool(annotations=_READ)
-    async def fit_view(target: Target = "auto") -> dict[str, Any]:
+    def fit_view(target: Target = "auto") -> dict[str, Any]:
         """Fit and redraw the open views in the active design file."""
         return _call(app.fit_view, target)
 
     @mcp.tool(annotations=_READ)
-    async def list_models(target: Target = "auto") -> dict[str, Any]:
+    def list_models(target: Target = "auto") -> dict[str, Any]:
         """List models in the active design file (name, 3D, read-only flags)."""
         return _call(app.list_models, target)
 
     @mcp.tool(annotations=_READ)
-    async def list_levels(target: Target = "auto") -> dict[str, Any]:
+    def list_levels(target: Target = "auto") -> dict[str, Any]:
         """List levels in the active design file, with display state when readable."""
         return _call(app.list_levels, target)
 
     @mcp.tool(annotations=_WRITE)
-    async def set_active_model(name: str, target: Target = "auto") -> dict[str, Any]:
+    def set_active_model(name: str, target: Target = "auto") -> dict[str, Any]:
         """Activate the named model (case-insensitive) in the active design file."""
         return _call(app.set_active_model, name, target)
 
     @mcp.tool(annotations=_READ)
-    async def list_elements(
+    def list_elements(
         limit: int = 100, level: str | None = None, target: Target = "auto"
     ) -> dict[str, Any]:
-        """List elements in the active design: id, level, type.
+        """List graphical elements in the ACTIVE model: id, level, type.
 
-        limit: 1..1000 returned. Scans element ids 1..min(largest id, 5000),
-        so models with very high ids may need run_python instead.
+        limit: 1..1000 returned; total_in_model and truncated report the rest.
+        Ids come from the model's graphical cache and are safe to pass to
+        delete_element.
         """
         return _call(app.list_elements, limit, level, target)
 
     @mcp.tool(annotations=_RAW)
-    async def delete_element(
+    def delete_element(
         element_id: Annotated[int, Field(gt=0)],
         confirm: bool = False,
         target: Target = "auto",
     ) -> dict[str, Any]:
-        """Remove one element (by element_id from list_elements) from the active design.
+        """Remove one element (by element_id from list_elements) from the active model.
 
-        Destructive: requires confirm=true. Resolves the id directly in the
-        active design file.
+        Destructive: requires confirm=true. Only matches ids present in the
+        active model's graphical cache.
         """
         if not confirm:
             raise ToolError("confirm=true is required for delete_element")
         return _call(app.delete_element, element_id, True, target)
 
     @mcp.tool(annotations=_WRITE)
-    async def create_text(
+    def create_text(
         origin: Point,
         text: Annotated[str, Field(min_length=1, max_length=4096)],
         height: float | None = None,
@@ -183,7 +184,7 @@ def build_server(com: BentleyCom | None = None, token: str | None = None) -> Fas
         return _call(app.create_text, origin, text, height, target)
 
     @mcp.tool(annotations=_RAW)
-    async def run_python(
+    def run_python(
         code: Annotated[str, Field(min_length=1, max_length=20000)],
         confirm: bool = False,
         target: Target = "auto",
