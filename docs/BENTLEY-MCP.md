@@ -99,6 +99,9 @@ Without the token the endpoint is still loopback-only, but any local process can
 | `run_python` | Run code in MicroStation's embedded Python 3.12; captures stdout, exceptions and `__result__` | Requires `confirm=true`. **One script per app session** (26.00.02.39, verified 2026-10-28) — batch the whole job into one call |
 | `python_result` | Fetch a queued `run_python` result by `run_id` | Consumes the stored result |
 | `fit_view` | Fit and redraw open views | View state only |
+| `launch_app` | Start the right executable with a DGN; wait for attach | Idempotent (returns the running app instead of a second instance); on timeout a modal dialog needs a human |
+| `com_get` | Read any COM property by dotted path from Application | Read-only; objects return `{type, members}` — the discovery route; numeric segments index collections |
+| `create_batch` | Up to 1000 line/polyline/text ops in one attach | Reports per-kind counts; far cheaper than per-element calls |
 
 Routing rules for choosing between these tools and the Copilot-bundled MCP
 server live in [ROUTING.md](ROUTING.md).
@@ -170,6 +173,7 @@ choose or protect project files.
 | `401 Unauthorized` over HTTP | Send `Authorization: Bearer` with the same `BENTLEY_MCP_TOKEN` the server has. |
 | `port ... already listening` | Choose another port: `pwsh scripts\start-bentley.ps1 -Port 18132`. |
 | Title shows `[... Read-Only]` or "File is read-only" | A fresh non-workset DGN copy opened degraded: dismiss the "No WorkSet Alert" once, then `open_design` with `read_only: false`. |
+| Wrote to the wrong design | Startup can ignore the file argument and restore the last design. Always `get_status` (or read `bentley://status`) and confirm `design_file` before writing. |
 
 ## Tests
 

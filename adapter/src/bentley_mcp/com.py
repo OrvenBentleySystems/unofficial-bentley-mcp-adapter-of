@@ -146,6 +146,40 @@ def _collect(collection: Any, limit: int) -> list[Any]:
     return items
 
 
+# COM cold-start on this machine launches OpenBuildings (shared CLSID
+# LocalServer32), so starting an app means starting its exe directly.
+_EXE_GLOBS = {
+    "microstation": r"C:\Program Files\Bentley\MicroStation*\MicroStation\microstation.exe",
+    "openbuildings": (
+        r"C:\Program Files\Bentley\OpenBuildings*\OpenBuildingsDesigner"
+        r"\OpenBuildingsDesigner.exe"
+    ),
+}
+
+
+def _find_exe(product: str) -> Path | None:
+    import glob
+
+    hits = sorted(glob.glob(_EXE_GLOBS[product]), reverse=True)  # newest version first
+    return Path(hits[0]) if hits else None
+
+
+def _describe(value: Any) -> dict[str, Any]:
+    if value is None or isinstance(value, (bool, int, float)):
+        return {"value": value, "type": type(value).__name__}
+    if isinstance(value, str):
+        return {"value": value[:4000], "type": "str"}
+    try:
+        members = sorted(m for m in dir(value) if not m.startswith("_"))
+    except Exception:
+        members = []
+    return {
+        "type": type(value).__name__,
+        "members": members[:100],
+        "member_count": len(members),
+    }
+
+
 class BentleyCom:
     """Thin, synchronous wrapper around the Bentley automation object."""
 
@@ -657,3 +691,151 @@ class BentleyCom:
         except OSError:
             pass
         return {"run_id": run_id, "ready": True, "result": payload}
+
+    def launch_app(
+        self, dgn: str, target: str = "microstation", wait_s: int = 120
+    ) -> dict[str, Any]:
+        """Start the right Bentley executable with a DGN and wait for attach.
+
+        Idempotent: if the requested product is already attached it returns
+        its status instead of starting a second (unattachable) instance.
+        """
+        candidate = Path(dgn).expanduser()
+        if target not in _EXE_GLOBS:
+            raise BentleyError("target must be microstation or openbuildings")
+        wait_s = int(wait_s)
+        if not 10 <= wait_s <= 300:
+            raise BentleyError("wait_s must be 10..300")
+        if not candidate.is_absolute():
+            raise BentleyError("dgn path must be absolute")
+        if candidate.suffix.lower() != ".dgn":
+            raise BentleyError("dgn path must name a .dgn file")
+        if not candidate.is_file():
+            raise BentleyError(f"design file not found: {candidate}")
+
+        try:
+            app, kind, name = self._for_target(target)
+        except BentleyUnavailable:
+            app = None
+        except BentleyError as exc:
+            raise BentleyError(
+                f"cannot launch {target}: {exc} — a second instance would be "
+                "registered but unattachable"
+            ) from exc
+        if app is not None:
+            out = self._info(app, kind, name)
+            out["launched"] = False
+            out["note"] = "already attached; use open_design to switch files"
+            return out
+
+        exe = _find_exe(target)
+        if exe is None:
+            raise BentleyError(
+                f"no installed {target} executable found under C:\\Program Files\\Bentley"
+            )
+        import subprocess
+
+        subprocess.Popen([str(exe), str(candidate)])
+
+        deadline = time.monotonic() + wait_s
+        while time.monotonic() < deadline:
+            time.sleep(3)
+            try:
+                app, kind, name = self._for_target(target)
+            except BentleyError:
+                continue
+            out = self._info(app, kind, name)
+            out["launched"] = True
+            out["exe"] = str(exe)
+            return out
+        raise BentleyError(
+            f"{exe.name} started but nothing attached within {wait_s}s; a modal "
+            "dialog (WorkSet prompt, license sign-in, recent-file restore) may "
+            "need attention in the application window"
+        )
+
+    def com_get(self, path: str, target: Target = "auto") -> dict[str, Any]:
+        """Read a dotted property path from the Application root (never calls)."""
+        segments = [s for s in path.split(".") if s]
+        if not 1 <= len(segments) <= 8:
+            raise BentleyError("path must be 1..8 dot-separated segments")
+        app, kind, name = self._for_target(target)
+        current: Any = app
+        walked: list[str] = []
+        for segment in segments:
+            walked.append(segment)
+            try:
+                if segment.isdigit():
+                    current = current.Item(int(segment))
+                else:
+                    current = getattr(current, segment)
+            except Exception as exc:
+                raise BentleyError(
+                    f"no such member: {'.'.join(walked)} ({exc})"
+                ) from exc
+            if callable(current):
+                raise BentleyError(
+                    f"com_get is read-only: {'.'.join(walked)} is a method"
+                )
+        out = _describe(current)
+        out["path"] = ".".join(walked)
+        return out
+
+    def create_batch(
+        self, operations: list[dict[str, Any]], target: Target = "auto"
+    ) -> dict[str, Any]:
+        """Create many elements with one attach. Kinds: line, polyline, text."""
+        if not 1 <= len(operations) <= 1000:
+            raise BentleyError("operations must hold 1..1000 items")
+        app, kind, name = self._for_target(target)
+        created = {"line": 0, "polyline": 0, "text": 0}
+        try:
+            model = app.ActiveModelReference
+            for position, op in enumerate(operations):
+                if not isinstance(op, dict):
+                    raise BentleyError(
+                        f"operations[{position}] must be an object with a kind"
+                    )
+                op_kind = op.get("kind")
+                if op_kind == "line":
+                    result = app.CreateLineElement2(
+                        None, _point(op["start"]), _point(op["end"])
+                    )
+                    model.AddElement(result[2])
+                elif op_kind == "polyline":
+                    points = op["points"]
+                    if not 2 <= len(points) <= 1000:
+                        raise BentleyError(
+                            f"operations[{position}]: polyline needs 2..1000 points"
+                        )
+                    for start, end in zip(points, points[1:]):
+                        result = app.CreateLineElement2(
+                            None, _point(start), _point(end)
+                        )
+                        model.AddElement(result[2])
+                    created["line"] += len(points) - 1
+                    created["polyline"] += 1
+                    continue
+                elif op_kind == "text":
+                    text = str(op["text"])
+                    if not text.strip() or len(text) > 4096:
+                        raise BentleyError(
+                            f"operations[{position}]: text must be 1..4096 characters"
+                        )
+                    element = app.CreateTextElement1(
+                        None, text, _point(op["origin"])
+                    )
+                    if isinstance(element, (list, tuple)):
+                        element = element[-1]
+                    model.AddElement(element)
+                else:
+                    raise BentleyError(
+                        f"operations[{position}]: unknown kind {op_kind!r} "
+                        "(line, polyline, text)"
+                    )
+                created[op_kind] += 1
+        except (KeyError, TypeError) as exc:
+            raise BentleyError(f"malformed operation: {exc}") from exc
+        out = self._info(app, kind, name)
+        out["created"] = created
+        return out

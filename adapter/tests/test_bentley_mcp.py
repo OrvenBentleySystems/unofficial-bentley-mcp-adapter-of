@@ -32,6 +32,9 @@ TOOLS = {
     "create_text",
     "run_python",
     "python_result",
+    "launch_app",
+    "com_get",
+    "create_batch",
 }
 
 
@@ -129,6 +132,22 @@ class FakeCom:
     def python_result(self, run_id: str) -> dict[str, Any]:
         self.calls.append(("python_result", run_id))
         return {"run_id": run_id, "ready": True, "result": {"status": "ok"}}
+
+    def launch_app(
+        self, dgn: str, target: str = "microstation", wait_s: int = 120
+    ) -> dict[str, Any]:
+        self.calls.append(("launch_app", dgn, target, wait_s))
+        return {"launched": False, "kind": target, "note": "already attached"}
+
+    def com_get(self, path: str, target: str = "auto") -> dict[str, Any]:
+        self.calls.append(("com_get", path, target))
+        return {"path": path, "value": "Model", "type": "str"}
+
+    def create_batch(
+        self, operations: list[dict[str, Any]], target: str = "auto"
+    ) -> dict[str, Any]:
+        self.calls.append(("create_batch", operations, target))
+        return {"created": {"line": len(operations), "polyline": 0, "text": 0}}
 
 
 def fake_server() -> tuple[FakeCom, Any]:
@@ -326,3 +345,56 @@ async def test_resources_report_unavailable_as_json() -> None:
     async with Client(server) as client:
         content = await client.read_resource("bentley://status")
     assert "error" in json.loads(content[0].text)
+
+
+async def test_new_tools_forward() -> None:
+    fake, server = fake_server()
+    async with Client(server) as client:
+        launched = (
+            await client.call_tool(
+                "launch_app", {"dgn": "C:\\scratch\\a.dgn", "wait_s": 60}
+            )
+        ).structured_content
+        got = (
+            await client.call_tool("com_get", {"path": "ActiveDesignFile.Name"})
+        ).structured_content
+        batched = (
+            await client.call_tool(
+                "create_batch",
+                {
+                    "operations": [
+                        {"kind": "line", "start": [0, 0, 0], "end": [1, 0, 0]}
+                    ]
+                },
+            )
+        ).structured_content
+    assert launched["launched"] is False
+    assert got["path"] == "ActiveDesignFile.Name"
+    assert batched["created"]["line"] == 1
+    assert fake.calls == [
+        ("launch_app", "C:\\scratch\\a.dgn", "microstation", 60),
+        ("com_get", "ActiveDesignFile.Name", "auto"),
+        (
+            "create_batch",
+            [{"kind": "line", "start": [0, 0, 0], "end": [1, 0, 0]}],
+            "auto",
+        ),
+    ]
+
+
+def test_new_tool_validation_before_attach() -> None:
+    com = BentleyCom()
+    with pytest.raises(BentleyError, match="target"):
+        com.launch_app("C:\\scratch\\a.dgn", target="plaxis")
+    with pytest.raises(BentleyError, match="absolute"):
+        com.launch_app("a.dgn")
+    with pytest.raises(BentleyError, match="\\.dgn"):
+        com.launch_app("C:\\scratch\\a.txt")
+    with pytest.raises(BentleyError, match="wait_s"):
+        com.launch_app("C:\\scratch\\a.dgn", wait_s=5)
+    with pytest.raises(BentleyError, match="1\\.\\.8"):
+        com.com_get("")
+    with pytest.raises(BentleyError, match="1\\.\\.8"):
+        com.com_get("a.b.c.d.e.f.g.h.i")
+    with pytest.raises(BentleyError, match="1\\.\\.1000"):
+        com.create_batch([])

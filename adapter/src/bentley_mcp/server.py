@@ -18,7 +18,7 @@ import logging
 import os
 import sys
 from collections.abc import Callable, Sequence
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
@@ -216,6 +216,49 @@ def build_server(com: BentleyCom | None = None, token: str | None = None) -> Fas
         ready=false.
         """
         return _call(app.python_result, run_id)
+
+    @mcp.tool(annotations=_WRITE)
+    def launch_app(
+        dgn: str, target: Literal["microstation", "openbuildings"] = "microstation",
+        wait_s: Annotated[int, Field(ge=10, le=300)] = 120,
+    ) -> dict[str, Any]:
+        """Start the right Bentley executable with a DGN and wait for attach.
+
+        Idempotent: returns the running app's status instead of launching a
+        second (unattachable) instance. Never uses COM auto-launch, which
+        would cold-start the wrong product. Modal dialogs (WorkSet prompt,
+        license sign-in) still need a human — the tool says so on timeout.
+        """
+        return _call(app.launch_app, dgn, target, wait_s)
+
+    @mcp.tool(annotations=_READ)
+    def com_get(
+        path: Annotated[str, Field(min_length=1, max_length=400)],
+        target: Target = "auto",
+    ) -> dict[str, Any]:
+        """Read any COM property by dotted path from the Application root.
+
+        Example paths: ActiveDesignFile.Name,
+        ActiveModelReference.GraphicalElementCache.Count, ActiveDesignFile.Views.1
+        (numeric segment = collection Item). Returns the value for primitives,
+        or {type, members} for objects — the discovery route for everything the
+        typed tools do not cover. Read-only: calling a method is an error.
+        """
+        return _call(app.com_get, path, target)
+
+    @mcp.tool(annotations=_WRITE)
+    def create_batch(
+        operations: Annotated[list[dict[str, Any]], Field(min_length=1, max_length=1000)],
+        target: Target = "auto",
+    ) -> dict[str, Any]:
+        """Create many elements in one call (one attach; far faster than loops).
+
+        operations: list of
+          {"kind": "line", "start": [x,y,z], "end": [x,y,z]}
+          {"kind": "polyline", "points": [[x,y,z], ...]}   (adds N-1 lines)
+          {"kind": "text", "origin": [x,y,z], "text": "..."}  (active text style)
+        """
+        return _call(app.create_batch, operations, target)
 
     def _safe(operation: Callable[..., dict[str, Any]]) -> dict[str, Any]:
         try:
