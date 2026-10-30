@@ -57,6 +57,18 @@ Resource-capable clients can also read live state without tool calls: `bentley:/
 `bentley://models`, `bentley://levels` (JSON; report `{"error": …}` instead of failing when no
 app is running).
 
+## SYNCHRO 4D (second server)
+
+Scheduling-side access via `synchro-mcp/` (Node, zero dependencies): `synchro_script` emits
+SYNCHRO's documented phrase-script files for bulk operations on the open project (user
+Preview/Run in-app, undoable), and `synchro_status` reports the bundled headless SDK
+(`synchrojs` native addon — loads in plain Node; builds `.sp` files without the GUI).
+Honest capability map and grammar: [docs/SYNCHRO-MCP.md](docs/SYNCHRO-MCP.md).
+
+```json
+{ "mcpServers": { "synchro": { "command": "node", "args": ["C:\\mcp-bridge\\synchro-mcp\\server.js"] } } }
+```
+
 ## Why COM instead of Copilot's MCP server?
 
 Works with any agent, needs no Evergreen update, has no Feature Token dependency (Copilot MCP,
@@ -82,6 +94,7 @@ MCP server genuinely adds capability, mount it alongside per [docs/ROUTING.md](d
 | Path | What |
 |---|---|
 | `adapter/src/bentley_mcp/` | the COM bridge — primary component |
+| `synchro-mcp/` | SYNCHRO 4D server (script channel + headless SDK status) |
 | `adapter/src/staad_mcp_gateway/` | secondary: authenticated read-only STAAD gateway |
 | `adapter/tests/` | unit tests and live probes |
 | `scripts/` | PowerShell 7: start/stop, preflight, validate, provision |

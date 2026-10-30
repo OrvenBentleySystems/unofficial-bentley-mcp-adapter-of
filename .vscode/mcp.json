@@ -4,6 +4,11 @@
       "type": "stdio",
       "command": "C:\\mcp-bridge\\adapter\\.venv\\Scripts\\python.exe",
       "args": ["-m", "bentley_mcp.server"]
+    },
+    "synchro": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["C:\\mcp-bridge\\synchro-mcp\\server.js"]
     }
   }
 }

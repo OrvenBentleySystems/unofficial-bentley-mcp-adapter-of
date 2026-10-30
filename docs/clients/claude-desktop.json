@@ -3,6 +3,10 @@
     "bentley": {
       "command": "C:\\mcp-bridge\\adapter\\.venv\\Scripts\\bentley-mcp.exe",
       "args": []
+    },
+    "synchro": {
+      "command": "node",
+      "args": ["C:\\mcp-bridge\\synchro-mcp\\server.js"]
     }
   }
 }
