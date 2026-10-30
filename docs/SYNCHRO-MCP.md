@@ -8,8 +8,22 @@ both.
 ```
 agent ── MCP stdio ──> synchro-mcp (Node, zero deps)
                         ├─ synchro_script  ──> phrase .txt ──> user Preview/Run in app (undoable)
+                        ├─ synchro_read    ──> prepare: C# dump script · collect: parsed tasks/links
                         └─ synchro_status  ──> bundled headless SDK (synchrojs native addon)
 ```
+
+## Read-back (synchro_read)
+
+`action=prepare` writes a C# dump script whose member names are verified against the
+`CSharp_*` exports of `SynchroAPI.dll` (`Synchro.Actives.Project`, `getAllTasks`,
+`getUpstreamLinks`, `Link.getUpstreamTaskID/getType/getDelay`, …). The user pastes it into
+Project Controls > SYNCHRO Script and Runs; `action=collect` then parses the CSV into
+`{tasks:[{id,name,status,type,duration,planned_start,actual_start,actual_finish}],
+links:[{task_id,upstream_id,type,delay}]}` with row-level problem reporting. The CSV schema
+is two row types — `TASK,...` (9 fields) and `LINK,...` (5 fields), RFC-4180 quoting; the
+parser is unit-proven against embedded commas, escaped quotes, and junk rows.
+First-run note: if the script editor's autocomplete prefers PascalCase, accept its
+suggestions — the shape is the same.
 
 ## The script channel (full control of the open project)
 
@@ -69,8 +83,8 @@ Requires SYNCHRO 4D Pro installed at the default path (override with
 
 ## Roadmap (each step needs the same RE probing that got v0)
 
-1. Read-back: script phrases cannot emit data; a C# script template that
-   dumps schedule state to CSV would close the loop (editor-paste, not TXT).
+1. ~~Read-back~~ — shipped as `synchro_read` (C# dump + CSV collect); end-to-end
+   in-app execution still to be confirmed by the first real run on a live project.
 2. Headless `.sp` builder tool wrapping `Importer` (entity trees + user
    fields; task stubs are not schedule-visible — proven 2026-10-30).
 3. Re-check on the next SYNCHRO release for a hosted Thrift/Messenger port

@@ -15,11 +15,98 @@
  */
 
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 
 const SDK_ROOT =
   process.env.SYNCHRO_APP_ROOT ||
   "C:\\Program Files\\Bentley\\SYNCHRO\\4D Pro\\synchro-imodel-bridge-win32-x64\\resources\\app\\node_modules\\synchrojs\\src\\index.js";
+
+const DEFAULT_CSV = path.join(os.tmpdir(), "bentley_mcp", "synchro_dump.csv");
+
+const DUMP_TEMPLATE = [
+  "// SYNCHRO 4D Pro schedule dump for synchro-mcp (v0).",
+  "// Run: Project Controls > SYNCHRO Script > Add (paste) > Run.",
+  "// Method names mirror the verified CSharp_* exports of SynchroAPI.dll",
+  "// (2026-10-30). If the editor's autocomplete shows PascalCase variants",
+  "// (GetAllTasks vs getAllTasks), accept the suggestion - the shape holds.",
+  "using System;",
+  "using System.Globalization;",
+  "using System.IO;",
+  "using System.Text;",
+  "",
+  "var project = Synchro.Actives.Project;",
+  "var sb = new StringBuilder();",
+  "Func<object, string> S = v => v == null ? \"\" : Convert.ToString(v, CultureInfo.InvariantCulture);",
+  "Func<string, string> Q = s => \"\\\"\" + (s ?? \"\").Replace(\"\\\"\", \"\\\"\\\"\") + \"\\\"\";",
+  "var tasks = project.getAllTasks();",
+  "for (int i = 0; i < tasks.size(); i++) {",
+  "    var t = tasks.at(i);",
+  "    sb.AppendLine(string.Join(\",\",",
+  "        \"TASK\", S(t.getID()), Q(t.getName()), Q(S(t.getStatus())), S(t.getType()),",
+  "        Q(S(t.getDuration())), Q(S(t.getPlannedStartTime())),",
+  "        Q(S(t.getActualStartTime())), Q(S(t.getActualFinishTime()))));",
+  "}",
+  "for (int i = 0; i < tasks.size(); i++) {",
+  "    var t = tasks.at(i);",
+  "    var links = t.getUpstreamLinks();",
+  "    for (int j = 0; j < links.size(); j++) {",
+  "        var l = links.at(j);",
+  "        sb.AppendLine(string.Join(\",\", \"LINK\", S(t.getID()),",
+  "            S(l.getUpstreamTaskID()), S(l.getType()), Q(S(l.getDelay()))));",
+  "    }",
+  "}",
+  'File.WriteAllText(@"__CSV_PATH__", sb.ToString(), Encoding.UTF8);',
+  "",
+].join("\r\n");
+
+function parseCsvLine(line) {
+  const fields = [];
+  let cur = "";
+  let quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (quoted) {
+      if (ch === '"') {
+        if (line[i + 1] === '"') { cur += '"'; i++; } else { quoted = false; }
+      } else cur += ch;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ",") { fields.push(cur); cur = ""; }
+    else cur += ch;
+  }
+  fields.push(cur);
+  return fields;
+}
+
+function collectCsv(csvPath) {
+  let stat;
+  try { stat = fs.statSync(csvPath); } catch { return { ready: false, csv_path: csvPath, hint: "no dump yet - run action prepare, execute the script in SYNCHRO, then collect" }; }
+  let rows;
+  try { rows = fs.readFileSync(csvPath, "utf8").split(/\r?\n/).filter((l) => l.trim()); }
+  catch (e) { return { ready: false, csv_path: csvPath, hint: `unreadable: ${e.message}` }; }
+  const tasks = [];
+  const links = [];
+  const problems = [];
+  rows.forEach((line, n) => {
+    const f = parseCsvLine(line);
+    if (f[0] === "TASK" && f.length >= 9) {
+      tasks.push({
+        id: f[1], name: f[2], status: f[3], type: f[4],
+        duration: f[5], planned_start: f[6],
+        actual_start: f[7], actual_finish: f[8],
+      });
+    } else if (f[0] === "LINK" && f.length >= 5) {
+      links.push({ task_id: f[1], upstream_id: f[2], type: f[3], delay: f[4] });
+    } else {
+      problems.push(`line ${n + 1}: unrecognized row`);
+    }
+  });
+  return {
+    ready: true, csv_path: csvPath, generated: stat.mtime.toISOString(),
+    task_count: tasks.length, link_count: links.length,
+    tasks, links, problems,
+  };
+}
 
 const GRAMMAR = [
   "Phrase format: <OBJECT>[(condition)] <COMMAND> - one operation per line.",
@@ -93,6 +180,31 @@ const TOOLS = [
       additionalProperties: false,
     },
   },
+  {
+    name: "synchro_read",
+    description:
+      "Read live schedule state from the open SYNCHRO project via a CSV dump. " +
+      "action=prepare writes a C# dump script (verified SynchroAPI member names) for the user to " +
+      "paste into Project Controls > SYNCHRO Script and Run. action=collect parses the resulting " +
+      "CSV and returns {tasks:[{id,name,status,type,duration,planned_start,actual_start,actual_finish}], " +
+      "links:[{task_id,upstream_id,type,delay}]}. Re-run collect after each in-app dump.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        action: { type: "string", enum: ["prepare", "collect"] },
+        csv_path: {
+          type: "string",
+          description: "Absolute .csv path (default: temp dir bentley_mcp/synchro_dump.csv)",
+        },
+        script_path: {
+          type: "string",
+          description: "Absolute .cs path for prepare (default: csv path + .cs)",
+        },
+      },
+      required: ["action"],
+      additionalProperties: false,
+    },
+  },
 ];
 
 function callTool(name, args) {
@@ -121,6 +233,41 @@ function callTool(name, args) {
       phrases: args.lines.length,
       how_to_run:
         "In SYNCHRO: Project Controls ribbon > SYNCHRO Script > right-click list > Add External Script > select file > Preview > Run. Undo via View ribbon.",
+    });
+  }
+  if (name === "synchro_read") {
+    const action = args.action;
+    const csv = path.isAbsolute(String(args.csv_path || ""))
+      ? String(args.csv_path)
+      : (args.csv_path ? null : DEFAULT_CSV);
+    if (csv === null) return toolResult({ error: "csv_path must be absolute" }, true);
+    if (action === "collect") {
+      if (!csv.toLowerCase().endsWith(".csv")) return toolResult({ error: "csv_path must end .csv" }, true);
+      return toolResult(collectCsv(csv));
+    }
+    if (action !== "prepare") return toolResult({ error: 'action must be "prepare" or "collect"' }, true);
+    if (!csv.toLowerCase().endsWith(".csv")) return toolResult({ error: "csv_path must end .csv" }, true);
+    const scriptPath = args.script_path
+      ? String(args.script_path)
+      : csv + ".cs";
+    if (!path.isAbsolute(scriptPath) || !scriptPath.toLowerCase().endsWith(".cs")) {
+      return toolResult({ error: "script_path must be an absolute .cs path" }, true);
+    }
+    if (!/[A-Za-z0-9_\\:\-. ]+/.test(csv) || csv.includes("..")) {
+      return toolResult({ error: "csv_path contains unsupported characters" }, true);
+    }
+    try {
+      fs.mkdirSync(path.dirname(scriptPath), { recursive: true });
+      fs.writeFileSync(scriptPath, DUMP_TEMPLATE.replace("__CSV_PATH__", csv), "utf8");
+    } catch (e) {
+      return toolResult({ error: `write failed: ${e.message}` }, true);
+    }
+    return toolResult({
+      script: scriptPath,
+      csv_will_appear_at: csv,
+      how_to_run:
+        "In SYNCHRO: Project Controls > SYNCHRO Script > right-click > Add, paste the file contents, Run. Then call synchro_read action=collect.",
+      note: "Member names verified against SynchroAPI.dll CSharp_* exports; if the editor suggests PascalCase variants, accept them.",
     });
   }
   return toolResult({ error: `unknown tool ${name}` }, true);

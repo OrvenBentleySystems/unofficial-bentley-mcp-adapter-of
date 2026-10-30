@@ -61,9 +61,10 @@ app is running).
 
 Scheduling-side access via `synchro-mcp/` (Node, zero dependencies): `synchro_script` emits
 SYNCHRO's documented phrase-script files for bulk operations on the open project (user
-Preview/Run in-app, undoable), and `synchro_status` reports the bundled headless SDK
-(`synchrojs` native addon — loads in plain Node; builds `.sp` files without the GUI).
-Honest capability map and grammar: [docs/SYNCHRO-MCP.md](docs/SYNCHRO-MCP.md).
+Preview/Run in-app, undoable), `synchro_read` closes the loop (prepare a verified C# dump
+script → collect parsed tasks/links from the CSV), and `synchro_status` reports the bundled
+headless SDK (`synchrojs` native addon — loads in plain Node; builds `.sp` files without the
+GUI). Honest capability map and grammar: [docs/SYNCHRO-MCP.md](docs/SYNCHRO-MCP.md).
 
 ```json
 { "mcpServers": { "synchro": { "command": "node", "args": ["C:\\mcp-bridge\\synchro-mcp\\server.js"] } } }
