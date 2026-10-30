@@ -13,6 +13,7 @@ design directly. See docs/ROUTING.md for the COM-vs-MCP routing policy.
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -40,10 +41,11 @@ _INSTRUCTIONS = (
     "automation object: MicroStation or OpenBuildings Designer, one at a time. "
     "A design file must already be open. OpenBuildings must be running with a "
     "DGN from its active workset. Coordinates are [x, y, z] in the active "
-    "model's working units. Use list_apps or get_status first. Prefer the typed "
-    "tools; for anything the typed surface does not cover use run_python "
-    "(returns captured stdout, exceptions and __result__) or run_keyin — both "
-    "gated on confirm=true."
+    "model's working units. Use list_apps or get_status first — or read the "
+    "bentley://status, bentley://models and bentley://levels resources. Prefer "
+    "the typed tools; for anything the typed surface does not cover use "
+    "run_python (returns captured stdout, exceptions and __result__) or "
+    "run_keyin — both gated on confirm=true."
 )
 
 
@@ -177,10 +179,10 @@ def build_server(com: BentleyCom | None = None, token: str | None = None) -> Fas
         height: float | None = None,
         target: Target = "auto",
     ) -> dict[str, Any]:
-        """Place a text element at [x, y, z] using the active text template.
+        """Place a text element at [x, y, z] using the active text style.
 
         height: optional text height in working units; the result reports
-        whether the template accepted it.
+        whether the style accepted it.
         """
         return _call(app.create_text, origin, text, height, target)
 
@@ -214,6 +216,27 @@ def build_server(com: BentleyCom | None = None, token: str | None = None) -> Fas
         ready=false.
         """
         return _call(app.python_result, run_id)
+
+    def _safe(operation: Callable[..., dict[str, Any]]) -> dict[str, Any]:
+        try:
+            return operation()
+        except BentleyError as exc:
+            return {"error": str(exc)}
+
+    @mcp.resource("bentley://status", mime_type="application/json", name="Bentley status")
+    def resource_status() -> str:
+        """Live app, design, model and extent state (same payload as get_status)."""
+        return json.dumps(_safe(app.get_status), default=str)
+
+    @mcp.resource("bentley://models", mime_type="application/json", name="Design models")
+    def resource_models() -> str:
+        """Models in the active design (same payload as list_models)."""
+        return json.dumps(_safe(app.list_models), default=str)
+
+    @mcp.resource("bentley://levels", mime_type="application/json", name="Design levels")
+    def resource_levels() -> str:
+        """Levels in the active design (same payload as list_levels)."""
+        return json.dumps(_safe(app.list_levels), default=str)
 
     return mcp
 

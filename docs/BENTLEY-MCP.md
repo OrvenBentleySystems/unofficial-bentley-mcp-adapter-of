@@ -10,10 +10,11 @@ MCP client ─► stdio (default)  or  http://127.0.0.1:18131/mcp
 ```
 
 **Status: live-verified on this workstation** with MicroStation 2026 (26.00.02.39) and
-OpenBuildings Designer 2024 (24.00.03.14). Full 15-tool pass on 2026-10-27 against a scratch DGN:
-attach, status, open, models, levels, model activation, line, polyline, text, element query,
-element delete (confirm-gated), python execute, save, fit, stdio, and loopback HTTP with bearer
-auth. Re-verified 2026-10-28 after the element-tool rewrite (unique ids, exact delete targeting).
+OpenBuildings Designer 2024 (24.00.03.14). Current surface: 16 tools. Full live pass on 2026-10-27
+against a scratch DGN: attach, status, open, models, levels, model activation, line, polyline, text,
+element query, element delete (confirm-gated), python execute, save, fit, stdio, and loopback HTTP
+with bearer auth. Re-verified 2026-10-28 after the element-tool rewrite (unique ids, exact delete
+targeting) and the `run_python`/`python_result` capture path.
 Live COM facts: `ModelReference` has no `Elements` collection — enumerate
 `ModelReference.GraphicalElementCache` with `GetElement(1..Count)` and read `Element.ID64`
 (do **not** id-scan: `GetElementByID64` resolves missing ids to a *different* element);
@@ -104,6 +105,17 @@ server live in [ROUTING.md](ROUTING.md).
 
 `target` accepts `auto`, `microstation`, or `openbuildings`. `auto` follows the attached app;
 an explicit target refuses a mismatch instead of acting on the other product.
+
+## Resources (live state without tool calls)
+
+| URI | Payload |
+|---|---|
+| `bentley://status` | App, design file, model, extents — same as `get_status` |
+| `bentley://models` | Model list — same as `list_models` |
+| `bentley://levels` | Level list — same as `list_levels` |
+
+All JSON. With no app running they return `{"error": ...}` instead of failing the read, so
+clients can poll them safely.
 
 Coordinates are in the active model's working units.
 

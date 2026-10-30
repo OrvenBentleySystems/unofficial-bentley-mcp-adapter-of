@@ -12,7 +12,6 @@ unit-tested without Bentley installed.
 from __future__ import annotations
 
 import json
-import logging
 import re
 import tempfile
 import time
@@ -20,8 +19,6 @@ import uuid
 from pathlib import Path
 from string import Template
 from typing import Any, Literal
-
-log = logging.getLogger("bentley_mcp.com")
 
 PROGID = "MicroStationDGN.Application"
 _TYPE_LIB = ("{CF9F97BF-39F2-4B8E-835C-8BE9E99DAF5B}", 10, 1)
@@ -586,6 +583,14 @@ class BentleyCom:
         directory = Path(tempfile.gettempdir()) / "bentley_mcp"
         results = directory / "results"
         directory.mkdir(parents=True, exist_ok=True)
+        cutoff = time.time() - 86400
+        for pattern in ("exec_*.py", "wrap_*.py", "results/*.json"):
+            for stale in directory.glob(pattern):
+                try:
+                    if stale.stat().st_mtime < cutoff:
+                        stale.unlink()
+                except OSError:
+                    continue
         user_file = directory / f"exec_{run_id}.py"
         user_file.write_text(code, encoding="utf-8")
         wrapper_file = directory / f"wrap_{run_id}.py"

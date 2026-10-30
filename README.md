@@ -52,6 +52,10 @@ Other clients: [docs/clients/](docs/clients). HTTP mode: `pwsh scripts\start-ben
 † require `confirm=true`. Full reference: [docs/BENTLEY-MCP.md](docs/BENTLEY-MCP.md) ·
 Routing policy (COM-first; Copilot MCP as documented gap-filler): [docs/ROUTING.md](docs/ROUTING.md).
 
+Resource-capable clients can also read live state without tool calls: `bentley://status`,
+`bentley://models`, `bentley://levels` (JSON; report `{"error": …}` instead of failing when no
+app is running).
+
 ## Why COM instead of Copilot's MCP server?
 
 Works with any agent, needs no Evergreen update, has no Feature Token dependency (Copilot MCP,
@@ -61,7 +65,7 @@ MCP server genuinely adds capability, mount it alongside per [docs/ROUTING.md](d
 
 ## Verified
 
-- MicroStation 2026 (26.00.02.39): all 15 tools, live smoke 2026-10-27
+- MicroStation 2026 (26.00.02.39): all 16 tools; live smoke 2026-10-27, capture re-verified 2026-10-28
 - OpenBuildings Designer 2024 (24.00.03.14): DGN element scope only (no parametric objects)
 - Unit tests: `uv run pytest -q` (32 pass) · live probe: `uv run python tests\bentley_baseline.py`
 - Gotchas: one Bentley instance at a time (shared COM ProgID; a second is invisible to COM);

@@ -6,6 +6,7 @@ forwarding only; they are not live Bentley evidence.
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 import pytest
@@ -297,3 +298,31 @@ def test_product_name_classification() -> None:
 def test_http_token_controls_auth() -> None:
     assert build_server(token=None).auth is None
     assert build_server(token="local-secret").auth is not None
+
+
+async def test_resources_expose_live_state() -> None:
+    _, server = fake_server()
+    async with Client(server) as client:
+        uris = {str(resource.uri) for resource in await client.list_resources()}
+        assert {"bentley://status", "bentley://models", "bentley://levels"} <= uris
+        content = await client.read_resource("bentley://status")
+    payload = json.loads(content[0].text)
+    assert payload["design_file"].endswith("test.dgn")
+
+
+class _BoomCom:
+    def get_status(self, target: str = "auto") -> dict[str, Any]:
+        raise BentleyError("no app")
+
+    def list_models(self, target: str = "auto") -> dict[str, Any]:
+        raise BentleyError("no app")
+
+    def list_levels(self, target: str = "auto") -> dict[str, Any]:
+        raise BentleyError("no app")
+
+
+async def test_resources_report_unavailable_as_json() -> None:
+    server = build_server(com=_BoomCom())  # type: ignore[arg-type]
+    async with Client(server) as client:
+        content = await client.read_resource("bentley://status")
+    assert "error" in json.loads(content[0].text)
